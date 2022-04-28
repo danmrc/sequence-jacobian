@@ -3,28 +3,47 @@
 import copy
 import numpy as np
 import matplotlib.pyplot as plt
+import scipy as sp
 
 from sequence_jacobian import het, simple, create_model              # functions
 from sequence_jacobian import interpolate, grids, misc, estimation   # modules
+from numba import vectorize
 
 def household_guess(a_grid,e_grid,r,w,gamma):
     wel = (1+r)*a_grid[np.newaxis,:] + w*e_grid[:,np.newaxis]
     V_prime = (1+r)*(wel/2)**(-gamma)
     return V_prime
 
+def consumption(c,we,rest,gamma,v,phi):
+    return c - we*(we/(-phi*c**gamma))**(1/v) - rest
+
+
+
 # Important: V_prime MUST be named v_prime_p in the argument of the function! Otherwise, raises error
 
 @het(exogenous = 'Pi',policy = 'a', backward = 'V_prime', backward_init=household_guess)
-def household(V_prime_p,a_grid,e_grid,r,w,beta,gamma):
-    c_prime = (beta*V_prime_p)**(-1/gamma)
-    new_grid = c_prime + a_grid
-    wel = (1+r)*a_grid[np.newaxis,:] + w*e_grid[:,np.newaxis]
+def household(V_prime_p,a_grid,e_grid,r,w,beta,gamma,v,phi):
 
-    a = interpolate.interpolate_y(new_grid,wel,a_grid)
-    misc.setmin(a,a_grid[0])
-    c = wel - a
+    c_prime = (beta*V_prime_p)**(-1/gamma) #c_prime is quite a misnomer, since this is the new guess for c_t
+    n_prime = ((w*e_grid[:,np.newaxis])/(phi*c_prime**gamma))**(1/v)
+
+    new_grid = c_prime + a_grid[np.newaxis,:] -  w*e_grid[:,np.newaxis]
+    wel = (1+r)*a_grid
+
+    c = interpolate.interpolate_y(new_grid,wel,c_prime)
+    n = interpolate.interpolate_y(new_grid,wel,n_prime)
+
+    a = wel - c
     V_prime= (1+r)*c**(-gamma)
-    L = 
+
+    # checks for violations of the condition of minimal assets required and fixes it
+
+    indexes_asset = np.nonzero(a < a_grid[0])
+    a[indexes_asset] = a_grid[0]
+
+    if indexes_asset[0].size != 0 and indexes_asset[1].size !=0:
+        
+
 
     return V_prime,a,c
 
