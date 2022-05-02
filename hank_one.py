@@ -9,6 +9,8 @@ from sequence_jacobian import het, simple, create_model              # functions
 from sequence_jacobian import interpolate, grids, misc, estimation   # modules
 from numba import vectorize
 
+import bissection_vectorize
+
 def household_guess(a_grid,e_grid,r,w,gamma):
     wel = (1+r)*a_grid[np.newaxis,:] + w*e_grid[:,np.newaxis]
     V_prime = (1+r)*(wel/2)**(-gamma)
@@ -18,32 +20,38 @@ def consumption(c,we,rest,gamma,v,phi):
     return c - we*(we/(-phi*c**gamma))**(1/v) - rest
 
 
-
 # Important: V_prime MUST be named v_prime_p in the argument of the function! Otherwise, raises error
 
 @het(exogenous = 'Pi',policy = 'a', backward = 'V_prime', backward_init=household_guess)
-def household(V_prime_p,a_grid,e_grid,r,w,beta,gamma,v,phi):
+def household(V_prime_p,a_grid,e_grid,r,w,T,beta,gamma,v,phi):
+
+    we = w*e_grid[:,np.newaxis]
 
     c_prime = (beta*V_prime_p)**(-1/gamma) #c_prime is quite a misnomer, since this is the new guess for c_t
-    n_prime = ((w*e_grid[:,np.newaxis])/(phi*c_prime**gamma))**(1/v)
+    n_prime = (we/(phi*c_prime**gamma))**(1/v)
 
-    new_grid = c_prime + a_grid[np.newaxis,:] -  w*e_grid[:,np.newaxis]
+    new_grid = c_prime + a_grid[np.newaxis,:] - we - T[:,np.newaxis]
     wel = (1+r)*a_grid
 
     c = interpolate.interpolate_y(new_grid,wel,c_prime)
     n = interpolate.interpolate_y(new_grid,wel,n_prime)
 
-    a = wel - c
+    a = wel + we*n + T[:,np.newaxis] - c
     V_prime= (1+r)*c**(-gamma)
 
     # checks for violations of the condition of minimal assets required and fixes it
 
-    indexes_asset = np.nonzero(a < a_grid[0])
+    indexes_asset = np.nonzero(a < a_grid[0]) #first dimension: labor grid, second dimension: asset grid
     a[indexes_asset] = a_grid[0]
 
     if indexes_asset[0].size != 0 and indexes_asset[1].size !=0:
-        
 
+        aa = np.zeros((indexes_asset[0].size,indexes_asset[1].size))
+        bb = c_prime[indexes_asset[0],indexes_asset[1]]
+
+        rest = -a_grid[0] + wel[indexes_asset[1]] + T[indexes_asset[0]]
+        c[indexes_asset] = vec_bissection(lambda c : consumption(c,we[indexes_asset[0]],rest,gamma,v,phi),aa,bb)
+        V_prime[indexes_asset] = (1+r)*c**(gamma)
 
     return V_prime,a,c
 
@@ -57,34 +65,56 @@ def make_grid(rho_e, sd_e, nE, amin, amax, nA):
     a_grid = grids.agrid(amin=amin, amax=amax, n=nA)
     return e_grid, Pi, a_grid
 
+def transfers(pi_e, Div, Tax, e_grid):
+    # hardwired incidence rules are proportional to skill; scale does not matter 
+    tax_rule, div_rule = e_grid, e_grid
+    div = Div / np.sum(pi_e * div_rule) * div_rule
+    tax = Tax / np.sum(pi_e * tax_rule) * tax_rule
+    T = div - tax
+    return T
 
-household_ext = household.add_hetinputs([make_grid])
+household_inp= household.add_hetinputs([make_grid,transfers])
 
-print(household_ext)
-print(f'Inputs: {household_ext.inputs}')
+print(household_inp)
+print(f'Inputs: {household_inp.inputs}')
+
+def labor_supply(n, e_grid):
+    ne = e_grid[:, np.newaxis] * n
+    return ne
+
+hh_ext = household_inp.add_hetoutputs([labor_supply])
+
+print(hh_ext)
+print(f'Outputs: {hh_ext.outputs}')
 
 @simple
-def firm(K, L, Z, alpha, delta):
-    r = alpha * Z * (K(-1) / L) ** (alpha-1) - delta
-    w = (1 - alpha) * Z * (K(-1) / L) ** alpha
-    Y = Z * K(-1) ** alpha * L ** (1 - alpha)
-    return r, w, Y
+def firm(Y, w, Z, pi, mu, kappa):
+    L = Y / Z
+    Div = Y - w * L - mu/(mu-1)/(2*kappa) * (1+pi).apply(np.log)**2 * Y
+    return L, Div
 
 
 @simple
-def mkt_clearing(K, A, Y, C, delta):
-    asset_mkt = A - K
-    goods_mkt = Y - C - delta * K
-    return asset_mkt, goods_mkt
+def monetary(pi, rstar, phi):
+    r = (1 + rstar(-1) + phi * pi(-1)) / (1 + pi) - 1
+    return r
 
-ks = create_model([household_ext, firm, mkt_clearing], name="Krusell-Smith")
-print(ks.inputs)
 
-calibration = {'gamma': 1, 'delta': 0.025, 'alpha': 0.11, 'rho_e': 0.966, 'sd_e': 0.5, 'L': 1.0,
-               'nE': 7, 'nA': 500, 'amin': 0, 'amax': 200}
-unknowns_ss = {'beta': 0.98, 'Z': 0.85, 'K': 3.}
-targets_ss = {'r': 0.01, 'Y': 1., 'asset_mkt': 0.}
+@simple
+def fiscal(r, B):
+    Tax = r * B
+    return Tax
 
-ss = ks.solve_steady_state(calibration, unknowns_ss, targets_ss, solver='hybr')
 
-print(ss)
+@simple
+def mkt_clearing(A, NE, C, L, Y, B, pi, mu, kappa):
+    asset_mkt = A - B
+    labor_mkt = NE - L
+    goods_mkt = Y - C - mu/(mu-1)/(2*kappa) * (1+pi).apply(np.log)**2 * Y
+    return asset_mkt, labor_mkt, goods_mkt
+
+
+@simple
+def nkpc_ss(Z, mu):
+    w = Z / mu
+    return w
