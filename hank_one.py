@@ -11,8 +11,8 @@ from numba import vectorize
 
 import bissection_vectorize
 
-def household_guess(a_grid,e_grid,r,w,gamma):
-    wel = (1+r)*a_grid[np.newaxis,:] + w*e_grid[:,np.newaxis]
+def household_guess(a_grid,e_grid,r,w,gamma,T):
+    wel = (1+r)*a_grid[np.newaxis,:] + w*e_grid[:,np.newaxis] + T - a_grid[0]
     V_prime = (1+r)*(wel/2)**(-gamma)
     return V_prime
 
