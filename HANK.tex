@@ -1,0 +1,251 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[top=30mm,bottom=30mm,left=25mm,right=25mm]{geometry}
+\usepackage{newcent} 							% in matlab: 'New Century Schoolbook'
+\usepackage[english]{babel}  		   		   	% language and its typo rules
+\usepackage[utf8]{inputenc}		 	   		   	% input accented characters
+\usepackage{xcolor}               	   		   	% change colors
+\usepackage{mathtools,amssymb}					% for math characters, also loads amsmath
+\usepackage{bm}									% for bold symbols
+\usepackage{multicol}				   		   	% use multicolumns
+\usepackage{enumitem}							% for enumerate
+\usepackage{comment}
+
+% Colors
+\definecolor{myb}{rgb}{0,0.4470,0.7410}        	% custom blue
+\definecolor{peach}{rgb}{0.85,0.325,0.0980}    	% custom orange
+
+
+\begin{document}
+\title{Consumption Tax in HANK}
+\author{Yvan Becard}
+%\date{}
+\maketitle
+
+
+
+\section{One-Asset HANK as in Auclert et al. (2021)}
+\label{hank}
+In this model, $\tau_t$ is a \textit{tax}, proportional to households' labor productivity $e_{it}$: $\tau_t\bar{\tau}(e_{it})$.
+
+\paragraph{Households}
+Continuum of households $i$. Utility function
+\begin{equation*}
+E_0\sum_{t=0}^{\infty}\beta^t\left\{\frac{c_{it}^{1-\sigma}}{1-\sigma}-\varphi\frac{n_{it}^{1+\nu}}{1+\nu}\right\}.
+\end{equation*}
+Budget constraint and borrowing constraint
+\begin{align*}
+&c_{it}+b_{it}=w_te_{it}n_{it}+(1+r_t)b_{it-1}-\tau_t\bar{\tau}(e_{it})+d_t\bar{d}(e_{it}),\\
+&b_{it}\geq\underline{b}.
+\end{align*}
+Lagrangian
+\begin{equation*}
+\mathcal{L}_i=E_0\sum_{t=0}^{\infty}\beta^t\left\lbrace \frac{c_{it}^{1-\sigma}}{1-\sigma}-\varphi\frac{n_{it}^{1+\nu}}{1+\nu}+\lambda_{it}\left[w_te_{it}n_{it}+(1+r_t)b_{it-1}-\tau_t\bar{\tau}(e_{it})+d_t\bar{d}(e_{it})-c_{it}-b_{it}\right]\right\rbrace.
+\end{equation*}
+Optimal labor supply and consumption-saving decisions for unconstrained households
+\begin{align*}
+%w_t&=\frac{\varphi n_{it}^{\nu}}{e_{it}c_{it}^{-\sigma}}.\\
+n_{it}&=\left(\frac{w_te_{it}}{\varphi c_{it}^{\sigma}}\right)^{\frac{1}{\nu}}.\\
+c_{it}^{-\sigma}&=\beta E_t(1+r_{t+1})c_{it+1}^{-\sigma}.
+\end{align*}
+When the borrowing constraint binds, $b_{it}=\underline{b}$, the budget constraint rewrites as
+\begin{equation*}
+c_{it}+\underline{b}=w_te_{it}n_{it}+(1+r_t)b_{it-1}-\tau_t\bar{\tau}(e_{it})+d_t\bar{d}(e_{it}).
+\end{equation*}
+Plug in the labor supply condition
+\begin{equation*}
+c_{it}+\underline{b}=w_te_{it}\left(\frac{w_te_{it}}{\varphi c_{it}^{\sigma}}\right)^{\frac{1}{\nu}}+(1+r_t)b_{it-1}-\tau_t\bar{\tau}(e_{it})+d_t\bar{d}(e_{it}).
+\end{equation*}
+%Lagrangian
+%\begin{equation*}
+%\mathcal{L}_i=E_0\sum_{t=0}^{\infty}\beta^t\left\lbrace \frac{c_{it}^{1-\sigma}}{1-\sigma}-\varphi\frac{n_{it}^{1+\nu}}{1+\nu}-\lambda_{it}\left[c_{it}+\underline{b}_{}-(1+r_t)b_{it-1}-w_te_{it}n_{it}+\tau_t\bar{\tau}(e_{it})-d_t\bar{d}(e_{it})\right]\right\rbrace.
+%\end{equation*}
+
+
+\paragraph{Firms}
+Continuum of intermediate firms $j$. Production function
+\begin{equation*}
+y_{jt}=Z_tn_{jt}.
+\end{equation*}
+Cost minimization $-w_tn_{jt}+mc_{jt}[Z_tn_{jt}-y_{jt}]$ yields labor demand
+\begin{equation*}
+mc_{jt}=mc_t=\frac{w_t}{Z_t}.
+\end{equation*}
+Quadratic adjustment cost
+\begin{equation*}
+\psi(p_{jt},p_{jt-1})=\frac{\mu}{\mu-1}\frac{1}{2\kappa}\left[\log\left(\frac{p_{jt}}{p_{jt-1}}\right)\right]^2Y_t.
+\end{equation*}
+Profit
+\begin{equation*}
+d_{jt}=\frac{p_{jt}}{P_t}y_{jt}-w_tn_{jt}-\frac{\mu}{\mu-1}\frac{1}{2\kappa}\left[\log\left(\frac{p_{jt}}{p_{jt-1}}\right)\right]^2Y_t.
+\end{equation*}
+Profit maximization, where $M_{t}\equiv\beta^t c_{t}^{-\sigma}$
+\begin{equation*}
+\max_{p_{jt}}E_0\sum_{t=0}^{\infty}M_{t}P_t\left[\frac{p_{jt}}{P_t}y_{jt}-w_tn_{jt}-\psi(p_{jt},p_{jt-1})\right]\quad\text{ s.t.}\quad y_{jt}=\left(\frac{p_{jt}}{P_t}\right)^{-\frac{\mu}{\mu-1}}Y_t.
+\end{equation*}
+Plug in the demand function
+\begin{equation*}
+\max_{p_{jt}}E_0\sum_{t=0}^{\infty}P_tM_{t}\left[\frac{p_{jt}}{P_t}\left(\frac{p_{jt}}{P_t}\right)^{-\frac{\mu}{\mu-1}}Y_t-w_t\left(\frac{p_{jt}}{P_t}\right)^{-\frac{\mu}{\mu-1}}\frac{Y_t}{Z_t}-\frac{\mu}{\mu-1}\frac{1}{2\kappa}\left[\log\left(\frac{p_{jt}}{p_{jt-1}}\right)\right]^2Y_t\right]
+\end{equation*}
+Phillips curve (ie FOC with respect to $p_{jt}$, after imposing symmetric equilibrium $p_{jt}=P_t$, defining aggregate inflation $1+\pi_t\equiv P_{t}/P_{t-1}$, and aggregate discount factor $M_{t+1}/M_t=(1+r_{t+1})^{-1}$)
+I FIND
+\begin{equation*}
+(1+\pi_t)\log(1+\pi_t)=\kappa\left(\frac{w_t}{Z_t}-\frac{1}{\mu}\right)+\frac{1}{1+r_{t+1}}\frac{Y_{t+1}}{Y_t}(1+\pi_{t+1})^2\log(1+\pi_{t+1}).
+\end{equation*}
+Phillips curve AUCLERT ET AL.
+\begin{equation*}
+\log(1+\pi_t)=\kappa\left(\frac{w_t}{Z_t}-\frac{1}{\mu}\right)+\frac{1}{1+r_{t+1}}\frac{Y_{t+1}}{Y_t}\log(1+\pi_{t+1}).
+\end{equation*}
+Aggregate dividends
+\begin{equation*}
+d_t=Y_t-w_tN_t-\psi_t.
+\end{equation*}
+
+
+\paragraph{Government}
+Government budget constraint: the tax finances interest payment on bonds
+\begin{equation*}
+\tau_t=r_tB.
+\end{equation*}
+Monetary policy
+\begin{equation*}
+i_t=r_t^*+\phi\pi_t.
+\end{equation*}
+Fisher equation
+\begin{equation*}
+1+r_t=\frac{1+i_{t-1}}{1+\pi_t}.
+\end{equation*}
+
+
+\paragraph{Market clearing} Aggregate production function and resource constraint
+\begin{equation*}
+Y_t=Z_tN_t;\quad Y_t=C_t+\psi_t\quad\text{where }C_t\int_i c_{it}di.
+\end{equation*}
+Clearing in the bond and labor markets
+\begin{equation*}
+B_t=\int_ib_{it}di;\quad N_t=\int_ie_{it}n_{it}di.
+\end{equation*}
+
+
+
+
+\section{One-Asset HANK with Exogenous Uniform Cash Transfers}
+\label{hanktransfer}
+Same model as in Section \ref{hank}, except that $\tau_t$ is no longer a proportional \textit{tax} but instead becomes an exogenous, lump-sum \textit{transfer}. Government debt $B$ becomes a time-varying endogenous variable, $B_t$.
+
+
+\paragraph{Households}
+Continuum of households $i$. Utility function
+\begin{equation*}
+E_0\sum_{t=0}^{\infty}\beta^t\left\{\frac{c_{it}^{1-\sigma}}{1-\sigma}-\varphi\frac{n_{it}^{1+\nu}}{1+\nu}\right\}.
+\end{equation*}
+Budget constraint and borrowing constraint
+\begin{align*}
+&c_{it}+b_{it}=w_te_{it}n_{it}+(1+r_t)b_{it-1}+\tau_t+d_t\bar{d}(e_{it}),\\
+&b_{it}\geq\underline{b}.
+\end{align*}
+Same FOCs as before
+\begin{align*}
+%w_t&=\frac{\varphi n_{it}^{\nu}}{e_{it}c_{it}^{-\sigma}}.\\
+n_{it}&=\left(\frac{w_te_{it}}{\varphi c_{it}^{\sigma}}\right)^{\frac{1}{\nu}}.\\
+c_{it}^{-\sigma}&=\beta E_t(1+r_{t+1})c_{it+1}^{-\sigma}.
+\end{align*}
+
+
+\paragraph{Firms} Same as before
+
+\paragraph{Government} Government budget constraint: $\tau_t$ is now a transfer
+\begin{equation*}
+\tau_t+(1+r_t)B_{t-1}=B_t.
+\end{equation*}
+In steady state, this implies $\tau=-rB$.
+%Same monetary policy and Fisher equation
+%\begin{equation*}
+%i_t=r_t^*+\phi\pi_t;\quad 1+r_t=\frac{1+i_{t-1}}{1+\pi_t}.
+%\end{equation*}
+
+\paragraph{Market clearing} Same as before
+
+
+
+
+\section{One-Asset HANK with Transfers and Taxes}
+\label{hanktax}
+Same model as in Section \ref{hanktransfer}, but now we add exogenous consumption and labor taxes.
+
+
+\paragraph{Households}
+Continuum of households $i$. Utility function
+\begin{equation*}
+E_0\sum_{t=0}^{\infty}\beta^t\left\{\frac{c_{it}^{1-\sigma}}{1-\sigma}-\varphi\frac{n_{it}^{1+\nu}}{1+\nu}\right\}.
+\end{equation*}
+Budget constraint and borrowing constraint
+\begin{align*}
+&(1+\tau_{ct})c_{it}+b_{it}=(1-\tau_{n})w_te_{it}n_{it}+(1+r_t)b_{it-1}+\tau_t+d_t\bar{d}(e_{it}),\\
+&b_{it}\geq\underline{b}.
+\end{align*}
+%Lagrangian
+%\begin{dmath*}
+%\mathcal{L}_i=E_0\sum_{t=0}^{\infty}\beta^t\left\lbrace \frac{c_{it}^{1-\sigma}}{1-\sigma}-\varphi\frac{n_{it}^{1+\nu}}{1+\nu}+\lambda_{it}\left[(1-\tau_n)w_te_{it}n_{it}+(1+r_t)b_{it-1}-\tau_t\bar{\tau}(e_{it})+d_t\bar{d}(e_{it})-(1+\tau_{ct})c_{it}-b_{it}\right]\right\rbrace.
+%\end{dmath*}
+Optimal labor supply and consumption-saving decisions
+\begin{align*}
+%w_t&=\frac{(1+\tau_{ct})\varphi n_{it}^{\nu}}{(1-\tau_n)e_{it}c_{it}^{-\sigma}}.\\
+n_{it}&=\left[\frac{(1-\tau_n)w_te_{it}}{(1+\tau_{ct})\varphi c_{it}^{\sigma}}\right]^{\frac{1}{\nu}}.\\
+c_{it}^{-\sigma}&=\beta E_t\frac{1+\tau_{ct}}{1+\tau_{ct+1}}(1+r_{t+1})c_{it+1}^{-\sigma}.
+\end{align*}
+
+
+\paragraph{Firms} Same as before
+
+
+\paragraph{Government}
+Government budget constraint
+\begin{equation*}
+\tau_t+(1+r_t)B_{t-1}=\tau_{ct}C_t+\tau_{n}W_tN_t+B_t.
+\end{equation*}
+Same monetary policy and Fisher equation
+\begin{equation*}
+i_t=r_t^*+\phi\pi_t;\quad 1+r_t=\frac{1+i_{t-1}}{1+\pi_t}.
+\end{equation*}
+
+
+\paragraph{Market clearing} Same as before
+
+
+
+
+%\begin{comment}
+\section{One-Asset HANK with Sticky Wage}
+Same model, except that the labor supply equation is replaced by a wage Phillips curve.
+
+
+\paragraph{Unions}
+Continuum of unions $k$. Every household supplies every labor types, so each union represents all households. Quadratic adjustment costs
+\begin{equation*}
+\psi_w(W_{kt},W_{kt-1})=\frac{\mu_w}{\mu_w-1}\frac{1}{2\kappa_w}\left[\log\left(\frac{W_{kt}}{W_{kt-1}}\right)\right]^2.
+\end{equation*}
+Wage-setting problem
+\begin{equation*}
+\max_{W_{kt}}E_0\sum_{t=0}^{\infty}\beta^t\left\{-\varphi\frac{N_{kt}^{1+\nu}}{1+\nu}+\lambda_{kt}\left[(1-\tau_n)W_{kt}N_{kt}-\psi_w(W_{kt},W_{kt-1})\right]\right\}\text{ s.t. }N_{kt}=\left(\frac{W_{kt}}{W_t}\right)^{-\frac{\mu_w}{\mu_w-1}}N_t.
+\end{equation*}
+Plug in the labor demand function
+\begin{equation*}
+\begin{split}
+\max_{W_{kt}}E_0\sum_{t=0}^{\infty}\beta^t&\left\{-\varphi\frac{N_t^{1+\nu}}{1+\nu}\left(\frac{W_{kt}}{W_t}\right)^{-\frac{\mu_w(1+\nu)}{\mu_w-1}}\right.\\
+&+\left.P_t\lambda_{kt}\left[(1-\tau_n) W_{kt}\left(\frac{W_{kt}}{W_t}\right)^{-\frac{\mu_w}{\mu_w-1}}N_t-\frac{\mu_w}{\mu_w-1}\frac{1}{2\kappa_w}\left[\log\left(\frac{W_{kt}}{W_{kt-1}}\right)\right]^2\right]\right\}.
+\end{split}
+\end{equation*}
+FOC wage
+\begin{equation*}
+\log\left(\frac{w_t}{w_{t-1}}\right)\frac{w_t}{w_{t-1}}=\kappa_w\left(\varphi N_t^{1+\nu}-\frac{(1-\tau_n)w_tN_t}{\mu_w}\int_{i}e_{it}c_{it}^{-\sigma}di\right)+\beta\log\left(\frac{w_{t+1}}{w_{t}}\right)\frac{w_{t+1}}{w_{t}}.
+\end{equation*}
+Wage Phillips curve, where aggregate wage inflation is $1+\pi_t^w=(1+\pi_t)w_t/w_{t-1}$
+\begin{equation*}
+\log(1+\pi_t^w)=\kappa_w\left(\varphi N_t^{1+\nu}-\frac{(1-\tau_n)w_tN_t}{\mu_w}\int_{i}e_{it}c_{it}^{-\sigma}di\right)+\beta\log(1+\pi_{t+1}^w).
+\end{equation*}
+%\end{comment}
+
+
+
+
+\end{document}
