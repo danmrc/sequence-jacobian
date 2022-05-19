@@ -40,6 +40,8 @@
 
 \begin{document}
 	
+	\section{First Try} 
+	
 	Firm problem:
 	
 	\begin{equation}
@@ -133,5 +135,46 @@
 		\frac{\kappa}{\mu}\mu\left(\frac{w_t}{Z_t} - \frac{1}{\mu}\right) + (1+\pi_{t+1})\frac{M_{t+1}}{M_t}\frac{Y_{t+1}}{Y_t} \frac{\mu}{\kappa}\frac{\kappa}{\mu}\log(1+\pi_{t+1}) = \log(1+\pi_t)\nonumber \\
 		\kappa \left(\frac{w_t}{Z_t} - \frac{1}{\mu}\right) + (1+\pi_{t+1})\frac{M_{t+1}}{M_t}\frac{Y_{t+1}}{Y_t} \log(1+\pi_{t+1}) = \log(1+\pi_t)
 	\end{gather}
+	
+	\section{Second try}
+	
+	Firm problem, dropping $P_t$:
+	
+	\begin{equation}
+		\max_{p_{jt}} E_0\left[\sum_{t=0}^{\infty} M_t \left(\frac{p_{jt}}{P_t} y_{jt} - w_t n_{jt} - \psi(p_{jt},p_{jt-1})\right) \right]
+	\end{equation}
+
+	Rearranging using 2 and 3:
+	
+	\begin{equation}
+		\max_{p_{jt}} E_0\left[\sum_{t=0}^{\infty} M_t \left(\left(\frac{p_{jt}}{P_t}\right)^{-\frac{1}{\mu-1}}Y_t - w_t \left(\frac{p_{jt}}{P_t}\right)^{-\frac{\mu}{\mu-1}}\frac{Y_t}{Z_t} - \psi(p_{jt},p_{jt-1})\right)\right]
+	\end{equation}
+	
+	First order conditions with respect to $p_{jt}$:
+	
+	\begin{gather}
+		M_t\left(-\frac{1}{\mu -1}\frac{Y_t}{P_t}\left(\frac{p_{jt}}{P_t}\right)^{-\frac{1}{\mu-1} -1} + \frac{\mu}{\mu-1} w_t \frac{1}{P_t}\left(\frac{p_{jt}}{P_t}\right)^{-\frac{\mu}{\mu-1} -1} \frac{Y_t}{Z_t} - \frac{\partial \psi(p_{jt},p_{jt-1})}{\partial p_{jt}}\right) + M_{t+1} \left(-\frac{\partial \psi(p_{jt+1},p_{jt})}{\partial p_{jt}}\right) = \\
+		M_t\left(-\frac{1}{\mu -1}\frac{Y_t}{P_t}\left(\frac{p_{jt}}{P_t}\right)^{-\frac{1}{\mu-1} -1} + \frac{\mu}{\mu-1} w_t \frac{1}{P_t}\left(\frac{p_{jt}}{P_t}\right)^{-\frac{\mu}{\mu-1} -1} \frac{Y_t}{Z_t} - \frac{\mu}{\mu-1}\frac{1}{\kappa}\log\left(\frac{p_{jt}}{p_{jt-1}}\right) \frac{Y_t}{p_{jt}} \right) + \nonumber \\ 
+		+ M_{t+1} \left(\frac{\mu}{\mu-1}\frac{1}{\kappa}\log\left(\frac{p_{jt+1}}{p_{jt}}\right) \frac{Y_{t+1}}{p_{jt}}\right)
+	\end{gather}
+
+	Imposing $p_{jt} = P_t$ $\forall t$, we obtain:
+	
+	\begin{gather}
+		M_t\left(-\frac{1}{\mu -1}\frac{Y_t}{P_t}\left(\frac{P_{t}}{P_t}\right)^{-\frac{1}{\mu-1} -1} + \frac{\mu}{\mu-1} w_t \frac{1}{P_t}\left(\frac{P_{t}}{P_t}\right)^{-\frac{\mu}{\mu-1} -1} \frac{Y_t}{Z_t} - \frac{\mu}{\mu-1}\frac{1}{\kappa}\log\left(\frac{P_{t}}{P_{t-1}}\right) \frac{Y_t}{P_{t}} \right) + \nonumber \\ 
+		+ M_{t+1} \left(\frac{\mu}{\mu-1}\frac{1}{\kappa}\log\left(\frac{P_{t+1}}{P_{t}}\right) \frac{Y_{t+1}}{P_{t}}\right) = \nonumber \\
+		M_t\left(-\frac{1}{\mu -1}\frac{Y_t}{P_t} + \frac{\mu}{\mu-1} w_t \frac{1}{P_t} \frac{Y_t}{Z_t} - \frac{\mu}{\mu-1}\frac{1}{\kappa}\log\left(\underbrace{\frac{P_{t}}{P_{t-1}}}_{1 + \pi_t}\right) \frac{Y_t}{P_{t}} \right) + M_{t+1} \left(\frac{\mu}{\mu-1}\frac{1}{\kappa}\log\left(\underbrace{\frac{P_{t+1}}{P_{t}}}_{1+ \pi_{t+1}}\right) \frac{Y_t}{P_{t}}\right) = \nonumber \\
+		\frac{M_t}{P_t}\frac{\mu}{\mu-1}Y_t\left(-\frac{1}{\mu} +  \frac{w_t}{Z_t} - \frac{1}{\kappa}\log\left(1+\pi_t\right)\right) + M_{t+1} \left(\frac{\mu}{\mu-1}\frac{1}{\kappa}\log\left(1+\pi_{t+1}\right) \frac{Y_{t+1}}{P_{t}}\right)
+	\end{gather}
+	
+	This is a first order condition, so:
+	
+	\begin{gather}
+		\frac{M_t}{P_t}\frac{\mu}{\mu-1}Y_t\left(-\frac{1}{\mu} +  \frac{w_t}{Z_t} - \frac{1}{\kappa}\log\left(1+\pi_t\right)\right) + \frac{M_{t+1}}{P_t} \frac{\mu}{\mu-1}\left(\frac{1}{\kappa}\log\left(1+\pi_{t+1}\right) Y_{t+1}\right) = 0 \nonumber \\
+		M_t Y_t \frac{1}{\kappa} \log(1+\pi_t) = M_t Y_t \left(\frac{w_t}{Z_t} - \frac{1}{\mu}\right) + M_{t+1} Y_{t+1} \frac{1}{\kappa} \log(1+\pi_{t+1}) \\
+		\log(1+\pi_t) = \kappa\left(\frac{w_t}{Z_t} - \frac{1}{\mu}\right) + \frac{M_{t+1}}{M_t} \frac{Y_{t+1}}{Y_t} \log(1+\pi_{t+1})
+	\end{gather}
+	
+	
 	
 \end{document}

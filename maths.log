@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.24 (TeX Live 2022/Arch Linux) (preloaded format=pdflatex 2022.5.1)  19 MAY 2022 14:37
+This is pdfTeX, Version 3.141592653-2.6-1.40.24 (TeX Live 2022/Arch Linux) (preloaded format=pdflatex 2022.5.1)  19 MAY 2022 18:55
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1111,65 +1111,75 @@ LaTeX Info: Redefining \nameref on input line 41.
 * \@reversemarginfalse
 * (1in=72.27pt=25.4mm, 1cm=28.453pt)
 
-LaTeX Font Info:    Trying to load font information for U+msa on input line 45.
+LaTeX Font Info:    Trying to load font information for U+msa on input line 47.
 
 (/usr/share/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 45.
+LaTeX Font Info:    Trying to load font information for U+msb on input line 47.
 
 
 (/usr/share/texmf-dist/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 )
-Overfull \hbox (121.52202pt too wide) detected at line 79
+Overfull \hbox (121.52202pt too wide) detected at line 81
 [][]\OML/cmm/m/it/10 M[]P[] [] \OT1/cmr/m/n/10 + \OML/cmm/m/it/10 M[]P[] [] \OT
 1/cmr/m/n/10 = 0
- []
-
-
-Overfull \hbox (19.1481pt too wide) detected at line 101
-[]
  []
 
 [1
 
 {/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map}]
-Overfull \hbox (93.63124pt too wide) detected at line 107
+Overfull \hbox (19.1481pt too wide) detected at line 103
+[]
+ []
+
+
+Overfull \hbox (93.63124pt too wide) detected at line 109
 [][]\OML/cmm/m/it/10 M[][][] [] \OT1/cmr/m/n/10 + \OML/cmm/m/it/10 M[]P[][][] [
 ] [] []
  []
 
 
-Overfull \hbox (84.66673pt too wide) detected at line 114
+Overfull \hbox (84.66673pt too wide) detected at line 116
 []
  []
 
-[2] (./maths.aux)
+[2]
+Overfull \hbox (87.12958pt too wide) detected at line 159
+[]
+ []
+
+
+Overfull \hbox (43.34058pt too wide) detected at line 168
+[]
+ []
+
+[3] (./maths.aux)
 Package rerunfilecheck Info: File `maths.out' has not changed.
-(rerunfilecheck)             Checksum: D41D8CD98F00B204E9800998ECF8427E;0.
+(rerunfilecheck)             Checksum: E55D1B6E7E2D050E195653E07BD54E4D;187.
  ) 
 Here is how much of TeX's memory you used:
- 14627 strings out of 478238
- 226952 string characters out of 5850457
- 598683 words of memory out of 5000000
- 32625 multiletter control sequences out of 15000+600000
- 471648 words of font info for 38 fonts, out of 8000000 for 9000
+ 14646 strings out of 478238
+ 227147 string characters out of 5850457
+ 595696 words of memory out of 5000000
+ 32632 multiletter control sequences out of 15000+600000
+ 472253 words of font info for 40 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 60i,12n,63p,452b,348s stack positions out of 5000i,500n,10000p,200000b,80000s
-</usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/share/
-texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/share/texmf-dist/fon
-ts/type1/public/amsfonts/cm/cmmi5.pfb></usr/share/texmf-dist/fonts/type1/public
-/amsfonts/cm/cmmi7.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cm
-r10.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmr5.pfb></usr/sh
-are/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/share/texmf-dist/f
-onts/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/texmf-dist/fonts/type1/pub
-lic/amsfonts/cm/cmsy5.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm
-/cmsy7.pfb>
-Output written on maths.pdf (2 pages, 111118 bytes).
+ 60i,18n,63p,452b,349s stack positions out of 5000i,500n,10000p,200000b,80000s
+</usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb></usr/share/
+texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></usr/share/texmf-dist/fon
+ts/type1/public/amsfonts/cm/cmmi10.pfb></usr/share/texmf-dist/fonts/type1/publi
+c/amsfonts/cm/cmmi5.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/c
+mmi7.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/
+share/texmf-dist/fonts/type1/public/amsfonts/cm/cmr5.pfb></usr/share/texmf-dist
+/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/share/texmf-dist/fonts/type1/pub
+lic/amsfonts/cm/cmsy10.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/c
+m/cmsy5.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb>
+Output written on maths.pdf (3 pages, 127737 bytes).
 PDF statistics:
- 88 PDF objects out of 1000 (max. 8388607)
- 63 compressed objects within 1 object stream
- 20 named destinations out of 1000 (max. 500000)
- 1 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 114 PDF objects out of 1000 (max. 8388607)
+ 86 compressed objects within 1 object stream
+ 30 named destinations out of 1000 (max. 500000)
+ 17 words of extra memory for PDF output out of 10000 (max. 10000000)
 
