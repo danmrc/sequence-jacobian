@@ -1,0 +1,137 @@
+\documentclass[a4paper,10pt]{article}
+
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenx}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{pifont}
+\usepackage{hyperref}
+\usepackage{indentfirst}
+\usepackage{tabu}
+\usepackage{multicol}
+\usepackage[thicklines]{cancel}
+\usepackage{algorithm2e}
+\usepackage[round]{natbib}
+\usepackage{amsthm}
+\usepackage{geometry}
+\usepackage{stackengine}
+
+\renewcommand\qedsymbol{$\blacksquare$}
+
+
+\geometry{includeheadfoot=true}
+\geometry{left=30mm}
+\geometry{right=40mm}
+\geometry{top=25mm}
+\geometry{bottom=15mm}
+
+\usepackage[table,dvipsnames]{xcolor}
+\hypersetup{
+	colorlinks,
+	linkcolor={green!50!black},
+	citecolor={blue!50!black},
+	urlcolor={blue!80!black}
+}
+
+\title{Maths from Aucklert et. al. 2019}
+\author{Daniel Coutinho}
+\date{\today}
+
+\begin{document}
+	
+	Firm problem:
+	
+	\begin{equation}
+		\max_{p_{jt}} E_0\left[\sum_{t=0}^{\infty} M_t P_t\left(\frac{p_{jt}}{P_t} y_{jt} - w_t n_{jt} - \psi(p_{jt},p_{jt-1})\right) \right]
+	\end{equation}
+	
+	And we have the following:
+	
+	\begin{gather}
+		y_{jt} = Z_t n_{jt}\\
+		y_{jt} = \left(\frac{p_{jt}}{P_t}\right)^{-\frac{\mu}{\mu-1}}Y_t\\
+		\psi(p_{jt},p_{jt-1}) = \frac{\mu}{\mu-1}\frac{1}{2\kappa}\left[\log\left(\frac{p_{jt}}{p_{jt-1}}\right)\right]^2Y_t = \frac{\mu}{\mu-1}\frac{1}{2\kappa}\left[\log(p_{jt})-\log(p_{jt-1})\right]^2Y_t
+	\end{gather} 
+	
+	Which are, respectively, the production function, the demand for the variety $j$ and the adjustment cost.
+	
+	Since equations 2 and 3 are the same quantity, we can obtain the demand of labor:
+	
+	\begin{gather}
+		Z_t n_{jt} = \left(\frac{p_{jt}}{P_t}\right)^{-\frac{\mu}{\mu-1}}Y_t \nonumber\\
+		n_{jt} = \left(\frac{p_{jt}}{P_t}\right)^{-\frac{\mu}{\mu-1}}\frac{Y_t}{Z_t}
+	\end{gather}
+
+	Plug equations 3 and 5 in the firm problem,equation 1, to obtain:
+	
+	\begin{gather}
+		\max_{p_{jt}} E_0\left[\sum_{t=0}^{\infty} M_t P_t \left(\frac{p_{jt}}{P_t}\left(\frac{p_{jt}}{P_t}\right)^{-\frac{\mu}{\mu-1}}Y_t - w_t \left(\frac{p_{jt}}{P_t}\right)^{-\frac{\mu}{\mu-1}}\frac{Y_t}{Z_t} - \psi(p_{jt},p_{jt-1})\right)\right] = \nonumber \\
+		\max_{p_{jt}} E_0\left[\sum_{t=0}^{\infty} M_t P_t \left(\left(\frac{p_{jt}}{P_t}\right)^{-\frac{\mu}{\mu-1}+1}Y_t - w_t \left(\frac{p_{jt}}{P_t}\right)^{-\frac{\mu}{\mu-1}}\frac{Y_t}{Z_t} - \psi(p_{jt},p_{jt-1})\right)\right] = \nonumber \\
+		\max_{p_{jt}} E_0\left[\sum_{t=0}^{\infty} M_t P_t \left(\left(\frac{p_{jt}}{P_t}\right)^{\frac{\mu -1 - \mu}{\mu-1}}Y_t - w_t \left(\frac{p_{jt}}{P_t}\right)^{-\frac{\mu}{\mu-1}}\frac{Y_t}{Z_t} - \psi(p_{jt},p_{jt-1})\right)\right] = \nonumber\\
+		\max_{p_{jt}} E_0\left[\sum_{t=0}^{\infty} M_t P_t \left(\left(\frac{p_{jt}}{P_t}\right)^{-\frac{1}{\mu-1}}Y_t - w_t \left(\frac{p_{jt}}{P_t}\right)^{-\frac{\mu}{\mu-1}}\frac{Y_t}{Z_t} - \psi(p_{jt},p_{jt-1})\right)\right]
+	\end{gather}
+
+	The First Order Conditions from the problem above yield:
+	
+	\begin{equation}
+		M_t P_t \left(-\frac{1}{\mu - 1}\frac{1}{P_t}\left(\frac{p_{jt}}{P_t}\right)^{-\frac{1}{\mu-1}-1} Y_t + \frac{\mu}{\mu -1}\frac{w_t}{P_t}\left(\frac{p_{jt}}{P_t}\right)^{-\frac{\mu}{\mu-1}-1} \frac{Y_t}{Z_t} - \frac{\partial \psi(p_{jt},p_{jt-1})}{\partial p_{jt}} \right) + M_{t+1}P_{t+1}\left(- \frac{\partial \psi(p_{jt+1},p_{jt})}{\partial p_{jt}}\right) = 0
+	\end{equation}
+		
+	
+	Lets calculate the $\frac{\partial \psi(p_{jt+1},p_{jt})}{\partial p_{jt}}$ and $\frac{\partial \psi(p_{jt},p_{jt-1})}{\partial p_{jt}}$, using equation 3:
+
+	\begin{subequations}
+	\begin{gather}
+		\frac{\partial \psi(p_{jt},p_{jt-1})}{\partial p_{jt}} = \frac{\mu}{\mu-1}\frac{2}{2\kappa}\log\left(\frac{p_{jt}}{p_{jt-1}}\right) \frac{Y_t}{p_{jt}}\\
+		\frac{\partial \psi(p_{jt},p_{jt-1})}{\partial p_{jt-1}} = -\frac{\mu}{\mu-1}\frac{2}{2\kappa}\log\left(\frac{p_{jt}}{p_{jt-1}}\right) \frac{Y_t}{p_{jt-1}}
+	\end{gather}		
+	\end{subequations}			
+	
+	By forwarding every term in 8b forward one period of time, we obtain:
+	
+	\begin{equation}
+		\frac{\partial \psi(p_{jt+1},p_{jt})}{\partial p_{jt}} = -\frac{\mu}{\mu-1}\frac{2}{2\kappa}\log\left(\frac{p_{jt+1}}{p_{jt}}\right) \frac{Y_{t+1}}{p_{jt}}
+	\end{equation}
+	
+	Plug equations 8b and 9 in equation 7 to obtain:
+	
+	\begin{gather}
+		M_t P_t \left(-\frac{1}{\mu - 1}\frac{1}{P_t}\left(\frac{p_{jt}}{P_t}\right)^{-\frac{1}{\mu-1}-1} Y_t + \frac{\mu}{\mu -1}\frac{w_t}{P_t}\left(\frac{p_{jt}}{P_t}\right)^{-\frac{\mu}{\mu-1}-1} \frac{Y_t}{Z_t} -\frac{\mu}{\mu-1}\frac{1}{\kappa}\log\left(\frac{p_{jt}}{p_{jt-1}}\right) \frac{Y_t}{p_{jt}}  \right) + \nonumber \\ + M_{t+1}P_{t+1}\frac{\mu}{\mu-1}\frac{1}{\kappa}\log\left(\frac{p_{jt+1}}{p_{jt}}\right) \frac{Y_{t+1}}{p_{jt}}
+	\end{gather}
+	
+	Note that, in the first parenthesis of equation 10, everyone depends on $Y_t$, $\frac{1}{P_t}$ and $\frac{1}{\mu -1}$. Simplifying:
+	
+	\begin{equation}
+		M_t \frac{P_t}{P_t}\frac{Y_t}{\mu - 1} \left(-\left(\frac{p_{jt}}{P_t}\right)^{-\frac{1}{\mu-1}-1} + \mu\frac{w_t}{Z_t}\left(\frac{p_{jt}}{P_t}\right)^{-\frac{\mu}{\mu-1}-1} - \frac{\mu}{\kappa}\log\left(\frac{p_{jt}}{p_{jt-1}}\right) \frac{P_t}{p_{jt}}  \right) + M_{t+1}P_{t+1}\frac{\mu}{\mu-1}\frac{1}{\kappa}\log\left(\frac{p_{jt+1}}{p_{jt}}\right) \frac{Y_{t+1}}{p_{jt}}
+	\end{equation}
+	
+	Let $P_t = p_{jt} \forall t$, which is the symmetric solution:
+	
+	\begin{gather}	
+		M_t \frac{Y_t}{\mu - 1} \left(-\left(\frac{P_t}{P_t}\right)^{-\frac{1}{\mu-1}-1} + \mu\frac{w_t}{Z_t}\left(\frac{P_t}{P_t}\right)^{-\frac{\mu}{\mu-1}-1} - \frac{\mu}{\kappa}\log\left(\frac{P_{t}}{P_{t-1}}\right) \frac{P_t}{P_{t}}  \right) + M_{t+1}P_{t+1}\frac{\mu}{\mu-1}\frac{1}{\kappa}\log\left(\frac{P_{t+1}}{P_{t}}\right) \frac{Y_{t+1}}{P_{t}} = \nonumber \\
+		= M_t \frac{Y_t}{\mu - 1} \left(-1 + \mu\frac{w_t}{Z_t} - \frac{\mu}{\kappa}\log\left(\frac{P_{t}}{P_{t-1}}\right)  \right) + M_{t+1}\frac{P_{t+1}}{P_t}\frac{\mu}{\mu-1}\frac{1}{\kappa}\log\left(\frac{P_{t+1}}{P_{t}}\right) Y_{t+1}
+	\end{gather}
+
+	Defining $1+\pi_t = \frac{P_t}{P_{t-1}}$, equation 12 becomes:
+	
+	\begin{equation}
+		M_t \frac{Y_t}{\mu - 1} \left(-1 + \mu\frac{w_t}{Z_t} - \frac{\mu}{\kappa}\log\left(1+\pi_t\right)  \right) + M_{t+1}(1+\pi_{t+1})\frac{\mu}{\mu-1}\frac{1}{\kappa}\log\left(1+\pi_{t+1}\right) Y_{t+1}
+	\end{equation}
+	
+	Recall that 13 actually represents a first order condition, therefore:
+	
+	\begin{equation}
+		M_t \frac{Y_t}{\mu - 1} \left(-1 + \mu\frac{w_t}{Z_t} - \frac{\mu}{\kappa}\log\left(1+\pi_t\right)  \right) + M_{t+1}(1+\pi_{t+1})\frac{\mu}{\mu-1}\frac{1}{\kappa}\log\left(1+\pi_{t+1}\right) Y_{t+1} = 0
+	\end{equation}
+
+	Rearranging, we obtain:
+	
+	\begin{gather}
+		M_t Y_t \left(-1 + \mu\frac{w_t}{Z_t} - \frac{\mu}{\kappa}\log\left(1+\pi_t\right) \right) + M_{t+1}(1+\pi_{t+1})\mu\frac{1}{\kappa}\log\left(1+\pi_{t+1}\right) Y_{t+1} = 0 \nonumber \\
+		M_t Y_t \left(\mu \frac{w_t}{Z_t} - 1\right) + M_{t+1} (1+\pi_{t+1})\frac{\mu}{\kappa} \log(1+\pi_{t+1})Y_{t+1} = \frac{\mu}{\kappa}M_t Y_t\log(1+\pi_{t}) \nonumber \\
+		\frac{\kappa}{\mu}\mu\left(\frac{w_t}{Z_t} - \frac{1}{\mu}\right) + (1+\pi_{t+1})\frac{M_{t+1}}{M_t}\frac{Y_{t+1}}{Y_t} \frac{\mu}{\kappa}\frac{\kappa}{\mu}\log(1+\pi_{t+1}) = \log(1+\pi_t)\nonumber \\
+		\kappa \left(\frac{w_t}{Z_t} - \frac{1}{\mu}\right) + (1+\pi_{t+1})\frac{M_{t+1}}{M_t}\frac{Y_{t+1}}{Y_t} \log(1+\pi_{t+1}) = \log(1+\pi_t)
+	\end{gather}
+	
+\end{document}
