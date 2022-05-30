@@ -1,18 +1,15 @@
 \documentclass[11pt,a4paper]{article}
 \usepackage[top=30mm,bottom=30mm,left=25mm,right=25mm]{geometry}
-\usepackage{newcent} 							% in matlab: 'New Century Schoolbook'
+\usepackage{newcent} 							% New Century Schoolbook font
 \usepackage[english]{babel}  		   		   	% language and its typo rules
 \usepackage[utf8]{inputenc}		 	   		   	% input accented characters
 \usepackage{xcolor}               	   		   	% change colors
 \usepackage{mathtools,amssymb}					% for math characters, also loads amsmath
-\usepackage{bm}									% for bold symbols
-\usepackage{multicol}				   		   	% use multicolumns
 \usepackage{enumitem}							% for enumerate
 \usepackage{comment}
 
-% Colors
-\definecolor{myb}{rgb}{0,0.4470,0.7410}        	% custom blue
-\definecolor{peach}{rgb}{0.85,0.325,0.0980}    	% custom orange
+\definecolor{myb}{rgb}{0,0.4470,0.7410}        	% custom blue color
+\definecolor{peach}{rgb}{0.85,0.325,0.0980}    	% custom orange color
 
 
 \begin{document}
@@ -80,20 +77,18 @@ d_{jt}=\frac{p_{jt}}{P_t}y_{jt}-w_tn_{jt}-\frac{\mu}{\mu-1}\frac{1}{2\kappa}\lef
 \end{equation*}
 Profit maximization, where $M_{t}\equiv\beta^t c_{t}^{-\sigma}$
 \begin{equation*}
-\max_{p_{jt}}E_0\sum_{t=0}^{\infty}M_{t}P_t\left[\frac{p_{jt}}{P_t}y_{jt}-w_tn_{jt}-\psi(p_{jt},p_{jt-1})\right]\quad\text{ s.t.}\quad y_{jt}=\left(\frac{p_{jt}}{P_t}\right)^{-\frac{\mu}{\mu-1}}Y_t.
+\begin{gathered}
+\max_{p_{jt}}E_0\sum_{t=0}^{\infty}M_{t}\left[\frac{p_{jt}}{P_t}y_{jt}-w_tn_{jt}-\psi(p_{jt},p_{jt-1})\right]\\
+\text{subject to}\quad y_{jt}=Z_tn_{jt},\,\, y_{jt}=\left(\frac{p_{jt}}{P_t}\right)^{-\frac{\mu}{\mu-1}}Y_t,\,\,\text{and } \psi(p_{jt},p_{jt-1})=\frac{\mu}{\mu-1}\frac{1}{2\kappa}\left[\log\left(\frac{p_{jt}}{p_{jt-1}}\right)\right]^2Y_t.
+\end{gathered}
 \end{equation*}
-Plug in the demand function
+Plug the constraints into the objective
 \begin{equation*}
-\max_{p_{jt}}E_0\sum_{t=0}^{\infty}P_tM_{t}\left[\frac{p_{jt}}{P_t}\left(\frac{p_{jt}}{P_t}\right)^{-\frac{\mu}{\mu-1}}Y_t-w_t\left(\frac{p_{jt}}{P_t}\right)^{-\frac{\mu}{\mu-1}}\frac{Y_t}{Z_t}-\frac{\mu}{\mu-1}\frac{1}{2\kappa}\left[\log\left(\frac{p_{jt}}{p_{jt-1}}\right)\right]^2Y_t\right]
+\max_{p_{jt}}E_0\sum_{t=0}^{\infty}M_{t}\left[\left(\frac{p_{jt}}{P_t}\right)^{-\frac{1}{\mu-1}}Y_t-w_t\left(\frac{p_{jt}}{P_t}\right)^{-\frac{\mu}{\mu-1}}\frac{Y_t}{Z_t}-\frac{\mu}{\mu-1}\frac{1}{2\kappa}\left[\log(p_{jt})-\log(p_{jt-1})\right]^2Y_t\right].
 \end{equation*}
-Phillips curve (ie FOC with respect to $p_{jt}$, after imposing symmetric equilibrium $p_{jt}=P_t$, defining aggregate inflation $1+\pi_t\equiv P_{t}/P_{t-1}$, and aggregate discount factor $M_{t+1}/M_t=(1+r_{t+1})^{-1}$)
-I FIND
+Phillips curve (ie FOC with respect to $p_{jt}$, after imposing symmetric equilibrium $p_{jt}=P_t$, defining inflation $1+\pi_t\equiv P_{t}/P_{t-1}$, and aggregate discount factor $M_{t+1}/M_t=(1+r_{t+1})^{-1}$)
 \begin{equation*}
-(1+\pi_t)\log(1+\pi_t)=\kappa\left(\frac{w_t}{Z_t}-\frac{1}{\mu}\right)+\frac{1}{1+r_{t+1}}\frac{Y_{t+1}}{Y_t}(1+\pi_{t+1})^2\log(1+\pi_{t+1}).
-\end{equation*}
-Phillips curve AUCLERT ET AL.
-\begin{equation*}
-\log(1+\pi_t)=\kappa\left(\frac{w_t}{Z_t}-\frac{1}{\mu}\right)+\frac{1}{1+r_{t+1}}\frac{Y_{t+1}}{Y_t}\log(1+\pi_{t+1}).
+\log(1+\pi_t)=\kappa\left(\frac{w_t}{Z_t}-\frac{1}{\mu}\right)+E_t\frac{1}{1+r_{t+1}}\frac{Y_{t+1}}{Y_t}\log(1+\pi_{t+1}).
 \end{equation*}
 Aggregate dividends
 \begin{equation*}
@@ -108,7 +103,7 @@ Government budget constraint: the tax finances interest payment on bonds
 \end{equation*}
 Monetary policy
 \begin{equation*}
-i_t=r_t^*+\phi\pi_t.
+i_t=r_t^*+\phi_{\pi}\pi_t.
 \end{equation*}
 Fisher equation
 \begin{equation*}
@@ -118,7 +113,7 @@ Fisher equation
 
 \paragraph{Market clearing} Aggregate production function and resource constraint
 \begin{equation*}
-Y_t=Z_tN_t;\quad Y_t=C_t+\psi_t\quad\text{where }C_t\int_i c_{it}di.
+Y_t=Z_tN_t;\quad Y_t=C_t+\psi_t\quad\text{where }C_t=\int_i c_{it}di.
 \end{equation*}
 Clearing in the bond and labor markets
 \begin{equation*}
@@ -134,20 +129,9 @@ Same model as in Section \ref{hank}, except that $\tau_t$ is no longer a proport
 
 
 \paragraph{Households}
-Continuum of households $i$. Utility function
-\begin{equation*}
-E_0\sum_{t=0}^{\infty}\beta^t\left\{\frac{c_{it}^{1-\sigma}}{1-\sigma}-\varphi\frac{n_{it}^{1+\nu}}{1+\nu}\right\}.
-\end{equation*}
-Budget constraint and borrowing constraint
+Same utility function, borrowing constraint, and FOCs as before. Only transfers in the budget constraint change
 \begin{align*}
-&c_{it}+b_{it}=w_te_{it}n_{it}+(1+r_t)b_{it-1}+\tau_t+d_t\bar{d}(e_{it}),\\
-&b_{it}\geq\underline{b}.
-\end{align*}
-Same FOCs as before
-\begin{align*}
-%w_t&=\frac{\varphi n_{it}^{\nu}}{e_{it}c_{it}^{-\sigma}}.\\
-n_{it}&=\left(\frac{w_te_{it}}{\varphi c_{it}^{\sigma}}\right)^{\frac{1}{\nu}}.\\
-c_{it}^{-\sigma}&=\beta E_t(1+r_{t+1})c_{it+1}^{-\sigma}.
+c_{it}+b_{it}=w_te_{it}n_{it}+(1+r_t)b_{it-1}+\tau_t+d_t\bar{d}(e_{it}).
 \end{align*}
 
 
@@ -174,11 +158,7 @@ Same model as in Section \ref{hanktransfer}, but now we add exogenous consumptio
 
 
 \paragraph{Households}
-Continuum of households $i$. Utility function
-\begin{equation*}
-E_0\sum_{t=0}^{\infty}\beta^t\left\{\frac{c_{it}^{1-\sigma}}{1-\sigma}-\varphi\frac{n_{it}^{1+\nu}}{1+\nu}\right\}.
-\end{equation*}
-Budget constraint and borrowing constraint
+Same utility function as before. Budget and borrowing constraints
 \begin{align*}
 &(1+\tau_{ct})c_{it}+b_{it}=(1-\tau_{n})w_te_{it}n_{it}+(1+r_t)b_{it-1}+\tau_t+d_t\bar{d}(e_{it}),\\
 &b_{it}\geq\underline{b}.
@@ -189,10 +169,18 @@ Budget constraint and borrowing constraint
 %\end{dmath*}
 Optimal labor supply and consumption-saving decisions
 \begin{align*}
-%w_t&=\frac{(1+\tau_{ct})\varphi n_{it}^{\nu}}{(1-\tau_n)e_{it}c_{it}^{-\sigma}}.\\
 n_{it}&=\left[\frac{(1-\tau_n)w_te_{it}}{(1+\tau_{ct})\varphi c_{it}^{\sigma}}\right]^{\frac{1}{\nu}}.\\
 c_{it}^{-\sigma}&=\beta E_t\frac{1+\tau_{ct}}{1+\tau_{ct+1}}(1+r_{t+1})c_{it+1}^{-\sigma}.
 \end{align*}
+Budget constraint when borrowing constraint binds
+\begin{equation*}
+(1+\tau_{ct})c_{it}+\underline{b}=(1-\tau_n)w_te_{it}n_{it}+(1+r_t)b_{it-1}+\tau_t+d_t\bar{d}(e_{it}).
+\end{equation*}
+Plug in the labor supply condition
+\begin{equation*}
+(1+\tau_{ct})c_{it}+\underline{b}=(1-\tau_n)w_te_{it}\left[\frac{(1-\tau_n)w_te_{it}}{(1+\tau_{ct})\varphi c_{it}^{\sigma}}\right]^{\frac{1}{\nu}}+(1+r_t)b_{it-1}+\tau_t+d_t\bar{d}(e_{it}).
+\end{equation*}
+
 
 
 \paragraph{Firms} Same as before
@@ -203,10 +191,11 @@ Government budget constraint
 \begin{equation*}
 \tau_t+(1+r_t)B_{t-1}=\tau_{ct}C_t+\tau_{n}W_tN_t+B_t.
 \end{equation*}
-Same monetary policy and Fisher equation
-\begin{equation*}
-i_t=r_t^*+\phi\pi_t;\quad 1+r_t=\frac{1+i_{t-1}}{1+\pi_t}.
-\end{equation*}
+In steady state, this implies $\tau=-rB+\tau_cC+\tau_nWN$.
+%Same monetary policy and Fisher equation
+%\begin{equation*}
+%i_t=r_t^*+\phi\pi_t;\quad 1+r_t=\frac{1+i_{t-1}}{1+\pi_t}.
+%\end{equation*}
 
 
 \paragraph{Market clearing} Same as before
@@ -214,36 +203,100 @@ i_t=r_t^*+\phi\pi_t;\quad 1+r_t=\frac{1+i_{t-1}}{1+\pi_t}.
 
 
 
-%\begin{comment}
 \section{One-Asset HANK with Sticky Wage}
-Same model, except that the labor supply equation is replaced by a wage Phillips curve.
+\label{hanksticky}
+Same model as in section \ref{hanktransfer}, except that the labor supply equation is replaced by a wage Phillips curve.
 
 
 \paragraph{Unions}
-Continuum of unions $k$. Every household supplies every labor types, so each union represents all households. Quadratic adjustment costs
+Continuum of unions $k$. Every household supplies every labor types, so each union represents all households. Union $k$ chooses a wage $W_{kt}$ to maximize
 \begin{equation*}
-\psi_w(W_{kt},W_{kt-1})=\frac{\mu_w}{\mu_w-1}\frac{1}{2\kappa_w}\left[\log\left(\frac{W_{kt}}{W_{kt-1}}\right)\right]^2.
+\begin{gathered}
+E_0\sum_{t=0}^{\infty}\beta^t\left\{\int_i\left[\frac{c_{it}^{1-\sigma}}{1-\sigma}-\varphi\frac{n_{it}^{1+\nu}}{1+\nu}\right]di-\psi_w(W_{kt},W_{kt-1})\right\}\\
+\text{subject to}\quad N_{kt}=\left(\frac{W_{kt}}{W_t}\right)^{-\frac{\mu_w}{\mu_w-1}}N_t\quad\text{and}\quad\psi_w(W_{kt},W_{kt-1})=\frac{\mu_w}{\mu_w-1}\frac{1}{2\kappa_w}\left[\log\left(\frac{W_{kt}}{W_{kt-1}}\right)\right]^2.
+\end{gathered}
 \end{equation*}
-Wage-setting problem
+Household $i$'s total real earnings are
+\begin{align*}
+z_{it}&=(1-\tau_n)\frac{W_{t}}{P_t}e_{it}n_{it}\lambda\\
+&=(1-\tau_n)\left(\frac{1}{P_t}\int_0^1W_{k,t}e_{it}n_{ikt}dk\right)\\
+&=(1-\tau_n)\left[\frac{1}{P_t}\int_0^1W_{k,t}e_{it}\left(\frac{W_{kt}}{W_t}\right)^{-\frac{\mu_w}{\mu_w-1}}N_tdk\right].
+\end{align*}
+The envelope theorem implies that we can evaluate indirect utility as if all income from the union wage change is consumed. That means $\frac{\partial c_{it}}{\partial W_{kt}}=\frac{\partial z_{it}}{\partial W_{kt}}$, where
+\begin{align*}
+\frac{\partial z_{it}}{\partial W_{kt}}&=(1-\tau_n)\frac{e_{it}}{P_t}\left(1-\frac{\mu_w}{\mu_w-1}\right)N_{kt}.
+\end{align*}
+Household $i$'s total hours worked are
 \begin{equation*}
-\max_{W_{kt}}E_0\sum_{t=0}^{\infty}\beta^t\left\{-\varphi\frac{N_{kt}^{1+\nu}}{1+\nu}+\lambda_{kt}\left[(1-\tau_n)W_{kt}N_{kt}-\psi_w(W_{kt},W_{kt-1})\right]\right\}\text{ s.t. }N_{kt}=\left(\frac{W_{kt}}{W_t}\right)^{-\frac{\mu_w}{\mu_w-1}}N_t.
+n_{it}=\int_0^1\left(\frac{W_{kt}}{W_t}\right)^{-\frac{\mu_w}{\mu_w-1}}N_tdk.
 \end{equation*}
-Plug in the labor demand function
+Hours fall when $W_{kt}$ increases 
+\begin{equation*}
+\frac{\partial n_{it}}{\partial W_{kt}}=-\frac{\mu_w}{\mu_w-1}\frac{N_{kt}}{W_{kt}}.
+\end{equation*}
+Combining everything, the first-order condition of the union with respect to $W_{kt}$ is
 \begin{equation*}
 \begin{split}
-\max_{W_{kt}}E_0\sum_{t=0}^{\infty}\beta^t&\left\{-\varphi\frac{N_t^{1+\nu}}{1+\nu}\left(\frac{W_{kt}}{W_t}\right)^{-\frac{\mu_w(1+\nu)}{\mu_w-1}}\right.\\
-&+\left.P_t\lambda_{kt}\left[(1-\tau_n) W_{kt}\left(\frac{W_{kt}}{W_t}\right)^{-\frac{\mu_w}{\mu_w-1}}N_t-\frac{\mu_w}{\mu_w-1}\frac{1}{2\kappa_w}\left[\log\left(\frac{W_{kt}}{W_{kt-1}}\right)\right]^2\right]\right\}.
+0&=\int_i N_{kt}\left\{(1-\tau_n)\frac{e_{it}}{P_t}\left(1-\frac{\mu_w}{\mu_w-1}\right)c_{it}^{-\sigma}+\varphi\frac{\mu_w}{\mu_w-1}\frac{1}{W_{kt}}n_{it}^{\nu}\right\}di\\
+&-\frac{\mu_w}{\mu_w-1}\frac{1}{\kappa_w}\log\left(\frac{W_{kt}}{W_{kt-1}}\right)\frac{1}{W_{kt}}+\beta\frac{\mu_w}{\mu_w-1}\frac{1}{\kappa_w}E_t\log\left(\frac{W_{kt+1}}{W_{kt}}\right)\frac{1}{W_{kt}}.
 \end{split}
 \end{equation*}
-FOC wage
+In a symmetric equilibrium, all unions set the same wage, so $W_{kt}=W_t$ and $n_{it}=N_{kt}=N_t$. Define wage inflation $1+\pi_t^w=\frac{w_t}{w_{t-1}}$ and obtain the aggregate wage Phillips curve
 \begin{equation*}
-\log\left(\frac{w_t}{w_{t-1}}\right)\frac{w_t}{w_{t-1}}=\kappa_w\left(\varphi N_t^{1+\nu}-\frac{(1-\tau_n)w_tN_t}{\mu_w}\int_{i}e_{it}c_{it}^{-\sigma}di\right)+\beta\log\left(\frac{w_{t+1}}{w_{t}}\right)\frac{w_{t+1}}{w_{t}}.
+\log(1+\pi_t^w)=\kappa_w\left(\varphi N_{t}^{1+\nu}-\frac{(1-\tau_n)w_tN_t}{\mu_w}\int_i e_{it}c_{it}^{-\sigma}di\right)+\beta E_t\log(1+\pi_{t+1}^w).
 \end{equation*}
-Wage Phillips curve, where aggregate wage inflation is $1+\pi_t^w=(1+\pi_t)w_t/w_{t-1}$
+In steady state, the wage Phillips curve gives us, solving for $\varphi$
 \begin{equation*}
-\log(1+\pi_t^w)=\kappa_w\left(\varphi N_t^{1+\nu}-\frac{(1-\tau_n)w_tN_t}{\mu_w}\int_{i}e_{it}c_{it}^{-\sigma}di\right)+\beta\log(1+\pi_{t+1}^w).
+\varphi=\frac{(1-\tau_n)wN^{-\nu}}{\mu_w}\int_{i}e_{i}c_{i}^{-\sigma}di.
 \end{equation*}
-%\end{comment}
+
+
+
+\section{One-Asset HANK with Sticky Wage and Consumption Tax TO CHECK}
+Same model as in section \ref{hanktax}, except that the labor supply equation is replaced by a wage Phillips curve in which we have consumption taxes.
+
+
+\paragraph{Unions}
+Continuum of unions $k$. Every household supplies every labor types, so each union represents all households. Union $k$ chooses a wage $W_{kt}$ to maximize
+\begin{equation*}
+\begin{gathered}
+E_0\sum_{t=0}^{\infty}\beta^t\left\{\int_i\left[\frac{c_{it}^{1-\sigma}}{1-\sigma}-\varphi\frac{n_{it}^{1+\nu}}{1+\nu}\right]di-\psi_w(W_{kt},W_{kt-1})\right\}\\
+\text{subject to}\quad N_{kt}=\left(\frac{W_{kt}}{W_t}\right)^{-\frac{\mu_w}{\mu_w-1}}N_t\quad\text{and}\quad\psi_w(W_{kt},W_{kt-1})=\frac{\mu_w}{\mu_w-1}\frac{1}{2\kappa_w}\left[\log\left(\frac{W_{kt}}{W_{kt-1}}\right)\right]^2.
+\end{gathered}
+\end{equation*}
+Household $i$'s total real earnings are
+\begin{align*}
+z_{it}&=\frac{1-\tau_n}{1+\tau_{ct}}\frac{W_{t}}{P_t}e_{it}n_{it}\lambda\\
+&=\frac{1-\tau_n}{1+\tau_{ct}}\left(\frac{1}{P_t}\int_0^1W_{k,t}e_{it}n_{ikt}dk\right)\\
+&=\frac{1-\tau_n}{1+\tau_{ct}}\left[\frac{1}{P_t}\int_0^1W_{k,t}e_{it}\left(\frac{W_{kt}}{W_t}\right)^{-\frac{\mu_w}{\mu_w-1}}N_tdk\right].
+\end{align*}
+The envelope theorem implies that we can evaluate indirect utility as if all income from the union wage change is consumed. That means $\frac{\partial c_{it}}{\partial W_{kt}}=\frac{\partial z_{it}}{\partial W_{kt}}$, where
+\begin{align*}
+\frac{\partial z_{it}}{\partial W_{kt}}&=\frac{1-\tau_n}{1+\tau_{ct}}\frac{e_{it}}{P_t}\left(1-\frac{\mu_w}{\mu_w-1}\right)N_{kt}.
+\end{align*}
+Household $i$'s total hours worked are
+\begin{equation*}
+n_{it}=\int_0^1\left(\frac{W_{kt}}{W_t}\right)^{-\frac{\mu_w}{\mu_w-1}}N_tdk.
+\end{equation*}
+Hours fall when $W_{kt}$ increases 
+\begin{equation*}
+\frac{\partial n_{it}}{\partial W_{kt}}=-\frac{\mu_w}{\mu_w-1}\frac{N_{kt}}{W_{kt}}.
+\end{equation*}
+Combining everything, the first-order condition of the union with respect to $W_{kt}$ is
+\begin{equation*}
+\begin{split}
+0&=\int_i N_{kt}\left\{\frac{1-\tau_n}{1+\tau_{ct}}\frac{e_{it}}{P_t}\left(1-\frac{\mu_w}{\mu_w-1}\right)c_{it}^{-\sigma}+\varphi\frac{\mu_w}{\mu_w-1}\frac{1}{W_{kt}}n_{it}^{\nu}\right\}di\\
+&-\frac{\mu_w}{\mu_w-1}\frac{1}{\kappa_w}\log\left(\frac{W_{kt}}{W_{kt-1}}\right)\frac{1}{W_{kt}}+\beta\frac{\mu_w}{\mu_w-1}\frac{1}{\kappa_w}E_t\log\left(\frac{W_{kt+1}}{W_{kt}}\right)\frac{1}{W_{kt}}.
+\end{split}
+\end{equation*}
+In a symmetric equilibrium, all unions set the same wage, so $W_{kt}=W_t$ and $n_{it}=N_{kt}=N_t$. Define wage inflation $1+\pi_t^w=\frac{w_t}{w_{t-1}}$ and obtain the aggregate wage Phillips curve
+\begin{equation*}
+\log(1+\pi_t^w)=\kappa_w\left(\varphi N_{t}^{1+\nu}-\frac{(1-\tau_n)w_tN_t}{(1+\tau_{ct})\mu_w}\int_i e_{it}c_{it}^{-\sigma}di\right)+\beta E_t\log(1+\pi_{t+1}^w).
+\end{equation*}
+In steady state, the wage Phillips curve gives us, solving for $\varphi$
+\begin{equation*}
+\varphi=\frac{(1-\tau_n)wN^{-\nu}}{(1+\tau_c)\mu_w}\int_{i}e_{i}c_{i}^{-\sigma}di.
+\end{equation*}
 
 
 
