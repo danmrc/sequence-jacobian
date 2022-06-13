@@ -228,128 +228,27 @@ for t in range(T-1, -1, -1):
                                            e_grid, path_r[t], path_div[t], path_transfer[t], beta, gamma, tauc)
     all_c[:, :, t] = c # absolute consumption
     
-all_c_dev = np.copy(all_c)
-for t in range(T):
-    all_c_dev[:, :, t] = all_c[:, :, t] - c_ss
-    # all_c_dev[:, :, t] = np.divide(all_c[:, :, t] - c_ss, c_ss) # deviation from steady state    
-    # all_c_dev[:, :, t] = all_c[:, :, t] # absolute consumption
-
 # Select only the first period
-c_first = all_c_dev[:, :, 0]
-# c_asset_dist = pi_e @ c_first # pi_e is the stationary distibution of idiosyncratic shocks
-# c_asset_dist_t = np.copy(c_asset_dist)
-
+c_first = all_c[:, :, 0]
+c_dev = (c_first - c_ss) / c_ss # percent deviation from steady state
 
 # Sort assets into bins
+nbin = np.zeros(100)
+nbin[1], nbin[2] = 0.5, 1
+nbin[3:] = np.arange(1.5, 150, 148.5 / 97)
 nbin = np.arange(0, 150, 1.5)
 a_bin = np.digitize(a_ss, nbin)
 
-# Weight each consumption response by mass of agents with specific asset value
-a_dist, D_dist, c_ss_dist, c_dist, c_dev_dist, cD_ss_dist, cD_dist = (np.zeros((nE, nA, 100)),
-np.zeros((nE, nA, 100)), np.zeros((nE, nA, 100)), np.zeros((nE, nA, 100)), np.zeros((nE, nA, 100)), 
-np.zeros((nE, nA, 100)), np.zeros((nE, nA, 100)))
-c_pct = np.zeros(100)
+# Weight each consumption response by mass of agents with given asset value
+a_dist = D_dist = c_dist =  np.zeros((nE, nA, len(nbin)))
+c_pct = D_total = np.zeros(len(nbin))
 
-for i in range(1, 100):  
-    a_dist[:, :, i] = np.where(a_bin == i, a_bin, 0) # matrix element = i if true, 0 otherwise
+for i in range(1, len(nbin)):  
+    a_dist[:, :, i] = np.where(a_bin == i, 1, 0) # returns 1 if true, 0 otherwise
     D_dist[:, :, i] = np.multiply(D, a_dist[:, :, i])
-    c_ss_dist[:, :, i] = np.multiply(c_ss, a_dist[:, :, i])
-    c_dist[:, :, i] = np.multiply(c_first, a_dist[:, :, i])
-    # c_dev_dist[:, :, i] = np.multiply(c_dist[:, :, i] - c_ss_dist[:, :, i], c_ss_dist[:, :, i])
-    cD_ss_dist[:, :, i] = np.multiply(c_ss_dist[:, :, i], D_dist[:, :, i])
-    cD_dist[:, :, i] = np.multiply(c_dist[:, :, i], D_dist[:, :, i])
-    c_pct[i] = np.sum(cD_dist[:, :, i])
-
-plt.plot(c_pct)
-plt.show()
-
-
-cons = np.reshape(c_first, (np.size(a_ss), )) # flatten array
-plt.plot(cons)
-plt.show()
-
-# Temporary, asset bin = 1
-a_dist1 = np.where(a_bin == i, a_bin, 0) # matrix element = i if true, 0 otherwise
-D_dist1 = np.multiply(D, a_dist1)
-print(np.sum(D_dist1))
-c_ss_dist1 = np.multiply(c_ss, a_dist1)
-c_dist1 = np.multiply(c_first, a_dist1)
-# c_dev_dist1 = np.multiply(c_dist1 - c_ss_dist1, c_ss_dist1)
-cD_ss_dist1 = np.multiply(c_ss_dist1, D_dist1)
-cD_dist1 = np.multiply(c_dev_dist1, D_dist1)
-c_pct1 = np.sum(cD_dist1 * np.sum(D_dist1))
-print(c_pct1)
-
-    
-
-
-
-
-# Weight each consumption response by mass of agents with asset percentile
-Dcol = np.sum(D, axis=0)
-Dprob = np.divide(D, Dcol)
-cprob = np.multiply(c_dist, Dprob)
-ca_dist = np.sum(cprob, axis=0) 
-
-
-# Assets: sort, group into bins, and compute percentiles
-asset_sort = np.sort(a_ss, axis=None) # sort all asset elements in ascending order
-nbin = np.arange(0, 150, 1.5)
-asset_bin = np.digitize(asset_sort, nbin)
-pctile = np.percentile(asset_sort, [list(range(0, 100, 1))])
-
-# Consumption: flatten
-cons = np.reshape(c_first, (np.size(a_ss), )) # flatten array
-cons_bin = cons[asset_bin]
-cons_bin = np.digitize(cons, nbin)
-
-# TEMPORARY: first type only
-asset1 = a_ss
-cons1 = c_dist
-asset_bin1 = np.digitize(asset1, nbin)
-
-plt.plot(asset1, cons1)
-np.sum(cons1,axis=0)
-
-wealth_perc = grids.agrid(amin=0, amax=1, n=nA)
-# plt.plot(wealth_perc, np.sum(cons1, axis=0))
-plt.plot(cons)
-# plt.plot(wealth_perc, cons1[0, :])
-# plt.plot(wealth_perc, cons1[1, :])
-# plt.plot(wealth_perc, cons1[2, :])
-# plt.plot(wealth_perc, cons1[3, :])
-# plt.plot(wealth_perc, cons1[4, :])
-# plt.plot(wealth_perc, cons1[5, :])
-# plt.plot(wealth_perc, cons1[6, :])
-# plt.plot(wealth_perc, cons1[7, :])
-plt.show()
-
-
-
-# RUBBISH
-# from scipy.stats import binned_statistic
-# ms = binned_statistic(asset_sort, cons, statistic='mean', bins=100)
-# ms.statistic
-# ms.bin_edges
-# ms.binnumber
-
-# cc = np.digitize(cons, nbin)
-# cons_sort = cons[asset_sort]
-# cons_bin = cons[asset_bin
-
-# asset_pos = np.argsort(a_ss, axis=None) # count position of each array element, ascending order
-
-# for i in range(a_ss.shape[1]):
-#     pos = np.argsort(a_ss[:, i], axis=None)
-# cons_sort = cons[asset_pos]
-
-
-# plt.plot(wealth_perc,c_asset_dist, label = "Transfer shock")
-# plt.plot(c_full_dist)
-# plt.plot(c_asset_dist)
-# plt.plot(asset_sort[0:300])
-# plt.plot(grids.agrid(amin=0, amax=1, n=nA*nE), cons)
-# plt.plot(asset_sort,cons_bin)
+    # D_total[i] = np.sum(D_dist[:, :, i])
+    c_dist[:, :, i] = np.multiply(c_dev, a_dist[:, :, i])
+    c_pct[i] = np.sum(c_dist[:, :, i]) #* np.sum(D_dist[:, :, i] )
 
 
 # =============================================================================
@@ -415,29 +314,50 @@ path_div = Div_ss + G['Div']['rstar'] @ drstar
 path_n = N_ss + G['N']['rstar'] @ drstar
 path_transfer = Transfer_ss + G['Transfer']['rstar'] @ drstar
 
+# plt.plot(path_w)
+# plt.plot(path_r)
+# plt.plot(path_n)
+# plt.plot(path_transfer)
+# plt.show()
+
 # Initialize individual consumption paths
 V_prime_p = (1 + r_ss) / (1 + tauc) * c_ss ** (-gamma)
-all_c = np.zeros((nE,nA,T))
+all_c = np.zeros((nE, nA, T))
 
 # Compute all individual consumption paths
 for t in range(T-1, -1, -1):
-    #print(t)
     V_prime_p, _, c, _ = iterate_household(household_d, V_prime_p, Pi, a_grid, path_w[t], path_n[t], taun, pi_e, 
-                                           e_grid, path_r[t], path_div[t], path_transfer[t], beta, gamma, tauc)    
-    all_c[:, :, t] = c
+                                           e_grid, path_r[t], path_div[t], path_transfer[t], beta, gamma, tauc)
+    all_c[:, :, t] = c # absolute consumption
     
-all_c_dev = np.copy(all_c)
+# Select only the first period
+c_first = all_c[:, :, 0]
+c_dev = (c_first - c_ss) / c_ss # percent deviation from steady state
 
-for l in range(T):
-    all_c_dev[:, :, t] = np.divide(all_c[:, :, t] - c_ss, c_ss)
+# Sort assets into bins
+a_bin = np.digitize(a_ss, nbin)
 
-c_dist = all_c_dev[:, :, 0] # Select only the first period
-c_asset_dist = pi_e @ c_dist
+# Weight each consumption response by mass of agents with given asset value
+a_dist = D_dist = c_dist =  np.zeros((nE, nA, len(nbin)))
+c_pct_R = D_total = np.zeros(len(nbin))
 
+for i in range(1, len(nbin)):  
+    a_dist[:, :, i] = np.where(a_bin == i, 1, 0) # returns 1 if true, 0 otherwise
+    D_dist[:, :, i] = np.multiply(D, a_dist[:, :, i])
+    # D_total[i] = np.sum(D_dist[:, :, i])
+    c_dist[:, :, i] = np.multiply(c_dev, a_dist[:, :, i])
+    c_pct_R[i] = np.sum(c_dist[:, :, i]) #* np.sum(D_dist[:, :, i] )
 
-wealth_perc = grids.agrid(amin = 0, amax=1, n=nA)
-
-plt.plot(wealth_perc,c_asset_dist_t, label = "Transfer shock")
-plt.plot(wealth_perc,c_asset_dist, label = "Interest-rate shock")
+plt.plot(c_pct[1:], label = "Transfer policy")
+plt.plot(c_pct_R[1:], label = "Interest-rate policy")
 plt.legend()
 plt.show()
+
+
+
+# wealth_perc = grids.agrid(amin = 0, amax=1, n=nA)
+
+# plt.plot(wealth_perc,c_asset_dist_t, label = "Transfer shock")
+# plt.plot(wealth_perc,c_asset_dist, label = "Interest-rate shock")
+# plt.legend()
+# plt.show()
