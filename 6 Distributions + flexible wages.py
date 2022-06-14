@@ -174,11 +174,11 @@ def household_d(V_prime_p, a_grid, e_grid, r, w, T, beta, gamma, nu, phi, tauc, 
         V_prime[indexes_asset] = (1 + r) / (1 + tauc) * (c[indexes_asset]) ** (-gamma) # check
     return V_prime, a, c, n
 
-def iterate_household(foo,V_prime_start,Pi,a_grid,w,taun,pi_e,e_grid,r,Div,Transfer,beta,gamma,v,tauc,maxit = 1000,tol = 1E-8):
+def iterate_household(foo,V_prime_start,Pi,a_grid,w,taun,pi_e,e_grid,r,Div,Transfer,beta,gamma,nu,tauc,maxit = 1000,tol = 1E-8):
     
     V_prime_p = Pi@V_prime_start
     V_prime_old = V_prime_start
-    #_,_,c,_ = foo(V_prime_p,a_grid,z_grid,e_grid,r,T,beta,gamma,v,tauc)
+    #_,_,c,_ = foo(V_prime_p,a_grid,z_grid,e_grid,r,T,beta,gamma,nu,tauc)
     
     ite = 0
     err = 1
@@ -188,7 +188,7 @@ def iterate_household(foo,V_prime_start,Pi,a_grid,w,taun,pi_e,e_grid,r,Div,Trans
     while ite < maxit and err > tol:
         
         #c_old = np.copy(c)
-        V_prime_temp,a,c,n = foo(V_prime_p,a_grid,e_grid,e_grid,r,T,beta,gamma,v,tauc,taun)
+        V_prime_temp,a,c,n = foo(V_prime_p,a_grid,e_grid,e_grid,r,T,beta,gamma,nu,tauc,taun)
         V_prime_p = Pi@V_prime_temp
         
         ite += 1
@@ -242,14 +242,14 @@ A, B, C, D, E = 1, 0.5, 0.19499, 5, 3
 for x in range(T):
     shock[x] = discount ** x * (A - B * (x - E)) * np.exp(-C * (x - E) - D) 
     
-z_grid = ss0.internals['household']['z_grid']
+# z_grid = ss0.internals['household']['z_grid']
 e_grid = ss0.internals['household']['e_grid']
 a_grid = ss0.internals['household']['a_grid']
 D = ss0.internals['household']['Dbeg']
 pi_e =  ss0.internals['household']['pi_e']
 Pi = ss0.internals['household']['Pi']
 
-v = ss0['v']
+nu = ss0['nu']
 beta = ss0['beta']
 gamma = ss0['gamma']
 tauc = ss0['tauc']
@@ -280,7 +280,7 @@ all_c = np.zeros((nE,nA,T))
 for t in range(299,-1,-1):
     #print(t)
     V_prime_p,_,c,_ = iterate_household(household_d,V_prime_p,Pi,a_grid,path_w[t],taun,pi_e,
-                            e_grid,path_r[t],path_div[t],path_transfer[t],beta,gamma,v,tauc)
+                            e_grid,path_r[t],path_div[t],path_transfer[t],beta,gamma,nu,tauc)
     all_c[:,:,t] = c
     
 all_c_devi = np.copy(all_c)
@@ -346,7 +346,7 @@ a_grid = ss0.internals['household']['a_grid']
 pi_e =  ss0.internals['household']['pi_e']
 Pi = ss0.internals['household']['Pi']
 
-v = ss0['v']
+nu = ss0['nu']
 beta = ss0['beta']
 gamma = ss0['gamma']
 tauc = ss0['tauc']
@@ -377,7 +377,7 @@ all_c = np.zeros((nE,nA,T))
 for t in range(299,-1,-1):
     #print(t)
     V_prime_p,_,c,_ = iterate_household(household_d,V_prime_p,Pi,a_grid,path_w[t],taun,pi_e,
-                            e_grid,path_r[t],path_div[t],path_transfer[t],beta,gamma,v,tauc)
+                            e_grid,path_r[t],path_div[t],path_transfer[t],beta,gamma,nu,tauc)
     all_c[:,:,t] = c
     
 all_c_devi = np.copy(all_c)
