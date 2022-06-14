@@ -174,7 +174,7 @@ def household_d(V_prime_p, a_grid, e_grid, r, w, T, beta, gamma, nu, phi, tauc, 
         V_prime[indexes_asset] = (1 + r) / (1 + tauc) * (c[indexes_asset]) ** (-gamma) # check
     return V_prime, a, c, n
 
-def iterate_household(foo,V_prime_start,Pi,a_grid,w,taun,pi_e,e_grid,r,Div,Transfer,beta,gamma,v,tauc,maxit = 1000,tol = 1E-8):
+def iterate_household(foo,V_prime_start,Pi,a_grid,w,taun,pi_e,e_grid,r,Div,Transfer,beta,gamma,nu,phi,tauc,maxit = 1000,tol = 1E-8):
     
     V_prime_p = Pi@V_prime_start
     V_prime_old = V_prime_start
@@ -188,7 +188,7 @@ def iterate_household(foo,V_prime_start,Pi,a_grid,w,taun,pi_e,e_grid,r,Div,Trans
     while ite < maxit and err > tol:
         
         #c_old = np.copy(c)
-        V_prime_temp,a,c,n = foo(V_prime_p,a_grid,e_grid,e_grid,r,T,beta,gamma,v,tauc,taun)
+        V_prime_temp,a,c,n = foo(V_prime_p,a_grid,e_grid,r,w,T,beta,gamma,nu,phi,tauc,taun)
         V_prime_p = Pi@V_prime_temp
         
         ite += 1
@@ -242,14 +242,14 @@ A, B, C, D, E = 1, 0.5, 0.19499, 5, 3
 for x in range(T):
     shock[x] = discount ** x * (A - B * (x - E)) * np.exp(-C * (x - E) - D) 
     
-z_grid = ss0.internals['household']['z_grid']
 e_grid = ss0.internals['household']['e_grid']
 a_grid = ss0.internals['household']['a_grid']
 D = ss0.internals['household']['Dbeg']
 pi_e =  ss0.internals['household']['pi_e']
 Pi = ss0.internals['household']['Pi']
 
-v = ss0['v']
+nu = ss0['nu']
+phi = ss0['phi']
 beta = ss0['beta']
 gamma = ss0['gamma']
 tauc = ss0['tauc']
@@ -280,7 +280,7 @@ all_c = np.zeros((nE,nA,T))
 for t in range(299,-1,-1):
     #print(t)
     V_prime_p,_,c,_ = iterate_household(household_d,V_prime_p,Pi,a_grid,path_w[t],taun,pi_e,
-                            e_grid,path_r[t],path_div[t],path_transfer[t],beta,gamma,v,tauc)
+                            e_grid,path_r[t],path_div[t],path_transfer[t],beta,gamma,nu,phi,tauc)
     all_c[:,:,t] = c
     
 all_c_devi = np.copy(all_c)
@@ -332,21 +332,8 @@ targets = ['nkpc_res', 'asset_mkt', 'labor_mkt', 'govt_res']
 # general equilibrium jacobians
 G = hank.solve_jacobian(ss, unknowns, targets, exogenous, T=T)
 
-shock = np.zeros(T)
-discount = (1 / (1 + ss['r']))
-#discount = 1
-#A, B, C, D, E = 1, 0.5, 0.19499, 5, 3
-A, B, C, D, E = 1, 0.5, 0.19499, 5, 3
-for x in range(T):
-    shock[x] = discount ** x * (A - B * (x - E)) * np.exp(-C * (x - E) - D) 
-    
-z_grid = ss0.internals['household']['z_grid']
-e_grid = ss0.internals['household']['e_grid']
-a_grid = ss0.internals['household']['a_grid']
-pi_e =  ss0.internals['household']['pi_e']
-Pi = ss0.internals['household']['Pi']
-
-v = ss0['v']
+nu = ss0['nu']
+phi = ss0['phi']
 beta = ss0['beta']
 gamma = ss0['gamma']
 tauc = ss0['tauc']
@@ -363,13 +350,13 @@ w_steady = ss0['w']
 N_steady = ss0['N']
 
 rhos = 0.9
-dtstar = shock
+drstar = -0.0025 * rhos ** (np.arange(T)[:, np.newaxis])
 
-path_w = w_steady + G['w']['Transfer']@dtstar
-path_r = r_steady + G['r']['Transfer']@dtstar
-path_div = Div_steady + G['Div']['Transfer']@dtstar
-path_n = N_steady + G['N']['Transfer']@dtstar
-path_transfer = Transfer_steady + dtstar
+path_w = w_steady + G['w']['rstar']@dtstar
+path_r = r_steady + G['r']['rstar']@dtstar
+path_div = Div_steady + G['Div']['rstar']@dtstar
+path_n = N_steady + G['N']['rstar']@dtstar
+path_transfer = Transfer_steady + + G['Transfer']['rstar']@drstar
 
 V_prime_p = (1+r_steady)*c_steady**(-gamma)
 all_c = np.zeros((nE,nA,T))
@@ -377,7 +364,7 @@ all_c = np.zeros((nE,nA,T))
 for t in range(299,-1,-1):
     #print(t)
     V_prime_p,_,c,_ = iterate_household(household_d,V_prime_p,Pi,a_grid,path_w[t],taun,pi_e,
-                            e_grid,path_r[t],path_div[t],path_transfer[t],beta,gamma,v,tauc)
+                            e_grid,path_r[t],path_div[t],path_transfer[t],beta,gamma,nu,phi,tauc)
     all_c[:,:,t] = c
     
 all_c_devi = np.copy(all_c)
@@ -385,7 +372,13 @@ all_c_devi = np.copy(all_c)
 for l in range(T):
 
     all_c_devi[:,:,l] = all_c[:,:,l] - c_steady    
-    
+
+c_full_dist = all_c_devi[:,:,0]#np.sum(all_c_devi,2) #
+c_asset_dist = np.zeros(nA)
+
+for i in range(nA):
+    c_asset_dist[i] = D[:,i]@c_full_dist[:,i]
+
 c_asset_dist = np.zeros(nA)
 
 for i in range(nA):
