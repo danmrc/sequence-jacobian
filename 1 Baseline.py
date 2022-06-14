@@ -5,7 +5,7 @@
 # =============================================================================
 
 import numpy as np
-from matplotlib import pyplot as plt
+import matplotlib.pyplot as plt
 from sequence_jacobian import het, simple, create_model             # functions
 from sequence_jacobian import interpolate, grids, misc, estimation  # modules
 
@@ -68,14 +68,14 @@ def household(V_prime_p, a_grid, e_grid, r, w, T, beta, gamma, nu, phi, tauc, ta
     a[indexes_asset] = a_grid[0]
 
     if indexes_asset[0].size != 0 and indexes_asset[1].size !=0:
-        aa = np.zeros((indexes_asset[0].size)) + 1E-10 # was 1E-5
+        aa = np.zeros((indexes_asset[0].size)) + 1E-5
         rest = wel[indexes_asset[1]] - a_grid[0] + T[indexes_asset[0]]
-        bb = c[indexes_asset] + 0.5 + 100
+        bb = c[indexes_asset] + 0.5
         c[indexes_asset] = vec_bisection(lambda c : consumption(c,we[indexes_asset[0]],
                                                                  rest,gamma,nu,phi,tauc,taun),aa,bb)
         n[indexes_asset] = ((1 - taun) * we[indexes_asset[0]] 
                             / ((1 + tauc) * phi * c[indexes_asset] ** gamma)) ** (1/nu)
-        V_prime[indexes_asset] = (1 + r) / (1 + tauc) * (c[indexes_asset]) ** (-gamma) # check
+        V_prime[indexes_asset] = (1 + r) / (1 + tauc) * (c[indexes_asset]) ** (-gamma)
     return V_prime, a, c, n
 
 def make_grid(rho_e, sd_e, nE, amin, amax, nA):
@@ -135,13 +135,19 @@ def nkpc_ss(Z, mu):
     w = Z / mu
     return w
 
-blocks_ss = [hh_ext, firm, monetary,fiscal, nkpc_ss, mkt_clearing]
-hank_ss = create_model(blocks_ss, name="One-Asset HANK SS")
+@simple
+def nkpc(pi, w, Z, Y, r, mu, kappa):
+    nkpc_res = kappa * (w / Z - 1 / mu) + Y(+1) / Y * (1 + pi(+1)).apply(np.log) / (1 + r(+1))\
+               - (1 + pi).apply(np.log)
+    return nkpc_res
 
 
 # =============================================================================
 # Steady state
 # =============================================================================
+
+blocks_ss = [hh_ext, firm, monetary,fiscal, nkpc_ss, mkt_clearing]
+hank_ss = create_model(blocks_ss, name="One-Asset HANK SS")
 
 calibration = {'gamma': 1.0, 'nu': 2.0, 'rho_e': 0.966, 'sd_e': 0.92, 'nE': 8,
                'amin': 0, 'amax': 200, 'nA': 500, 'Y': 1.0, 'Z': 1.0, 'pi': 0.0,
@@ -150,7 +156,6 @@ calibration = {'gamma': 1.0, 'nu': 2.0, 'rho_e': 0.966, 'sd_e': 0.92, 'nE': 8,
 
 unknowns_ss = {'beta': 0.986, 'phi': 0.8, 'Transfer': 0.05}
 targets_ss = {'asset_mkt': 0, 'labor_mkt': 0, 'govt_res': 0}
-
 print("Computing steady state...")
 ss0 = hank_ss.solve_steady_state(calibration, unknowns_ss, targets_ss, solver="hybr")
 print("Steady state solved")
@@ -159,12 +164,6 @@ print("Steady state solved")
 # =============================================================================
 # Dynamic model and Jacobian
 # =============================================================================
-
-@simple
-def nkpc(pi, w, Z, Y, r, mu, kappa):
-    nkpc_res = kappa * (w / Z - 1 / mu) + Y(+1) / Y * (1 + pi(+1)).apply(np.log) / (1 + r(+1))\
-               - (1 + pi).apply(np.log)
-    return nkpc_res
 
 blocks = [hh_ext, firm, monetary, fiscal, mkt_clearing, nkpc]
 hank = create_model(blocks, name="One-Asset HANK")
@@ -178,7 +177,6 @@ targets = ['nkpc_res', 'asset_mkt', 'labor_mkt', 'govt_res']
 print("Computing Jacobian...")
 G = hank.solve_jacobian(ss, unknowns, targets, exogenous, T=T)
 print("Jacobian solved")
-#print(G)
 
 
 # =============================================================================
