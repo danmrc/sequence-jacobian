@@ -178,7 +178,7 @@ def iterate_household(foo,V_prime_start,Pi,a_grid,w,taun,pi_e,e_grid,r,Div,Trans
     
     V_prime_p = Pi@V_prime_start
     V_prime_old = V_prime_start
-    #_,_,c,_ = foo(V_prime_p,a_grid,z_grid,e_grid,r,T,beta,gamma,v,tauc)
+    #_,_,c,_ = foo(V_prime_p,a_grid,z_grid,e_grid,r,T,beta,gamma,nu,tauc)
     
     ite = 0
     err = 1
@@ -188,7 +188,9 @@ def iterate_household(foo,V_prime_start,Pi,a_grid,w,taun,pi_e,e_grid,r,Div,Trans
     while ite < maxit and err > tol:
         
         #c_old = np.copy(c)
+
         V_prime_temp,a,c,n = foo(V_prime_p,a_grid,e_grid,r,w,T,beta,gamma,nu,phi,tauc,taun)
+
         V_prime_p = Pi@V_prime_temp
         
         ite += 1
@@ -242,6 +244,7 @@ A, B, C, D, E = 1, 0.5, 0.19499, 5, 3
 for x in range(T):
     shock[x] = discount ** x * (A - B * (x - E)) * np.exp(-C * (x - E) - D) 
     
+
 e_grid = ss0.internals['household']['e_grid']
 a_grid = ss0.internals['household']['a_grid']
 D = ss0.internals['household']['Dbeg']
@@ -281,6 +284,7 @@ for t in range(299,-1,-1):
     #print(t)
     V_prime_p,_,c,_ = iterate_household(household_d,V_prime_p,Pi,a_grid,path_w[t],taun,pi_e,
                             e_grid,path_r[t],path_div[t],path_transfer[t],beta,gamma,nu,phi,tauc)
+
     all_c[:,:,t] = c
     
 all_c_devi = np.copy(all_c)
@@ -331,6 +335,12 @@ targets = ['nkpc_res', 'asset_mkt', 'labor_mkt', 'govt_res']
 
 # general equilibrium jacobians
 G = hank.solve_jacobian(ss, unknowns, targets, exogenous, T=T)
+    
+z_grid = ss0.internals['household']['z_grid']
+e_grid = ss0.internals['household']['e_grid']
+a_grid = ss0.internals['household']['a_grid']
+pi_e =  ss0.internals['household']['pi_e']
+Pi = ss0.internals['household']['Pi']
 
 nu = ss0['nu']
 phi = ss0['phi']
@@ -364,7 +374,8 @@ all_c = np.zeros((nE,nA,T))
 for t in range(299,-1,-1):
     #print(t)
     V_prime_p,_,c,_ = iterate_household(household_d,V_prime_p,Pi,a_grid,path_w[t],taun,pi_e,
-                            e_grid,path_r[t],path_div[t],path_transfer[t],beta,gamma,nu,phi,tauc)
+                                        e_grid,path_r[t],path_div[t],path_transfer[t],beta,gamma,nu,phi,tauc)
+
     all_c[:,:,t] = c
     
 all_c_devi = np.copy(all_c)
