@@ -151,8 +151,8 @@ def nkpc(pi, w, Z, Y, r, mu, kappa):
 blocks_ss = [hh_ext, firm, monetary,fiscal, nkpc_ss, mkt_clearing]
 hank_ss = create_model(blocks_ss, name="One-Asset HANK SS")
 
-calibration = {'gamma': 1.0, 'nu': 2.0, 'rho_e': 0.966, 'sd_e': 0.92, 'nE': 8,
-               'amin': 0, 'amax': 200, 'nA': 500, 'Y': 1.0, 'Z': 1.0, 'pi': 0.0,
+calibration = {'gamma': 1.0, 'nu': 2.0, 'rho_e': 0.966, 'sd_e': 0.50, 'nE': 8,
+               'amin': 0, 'amax': 180, 'nA': 500, 'Y': 1.0, 'Z': 1.0, 'pi': 0.0,
                'mu': 1.2, 'kappa': 0.1, 'rstar': 0.005, 'phi_pi': 0.0, 'B': 6.0, 
                'tauc': 0.1, 'taun': 0.036}
 
@@ -214,7 +214,7 @@ def household_d(V_prime_p, a_grid, e_grid, r, w, T, beta, gamma, nu, phi, tauc, 
 
 def iterate_household(foo, V_prime_start, Pi, a_grid, w, taun, pi_e, e_grid, r, Div, 
                       Transfer, beta, gamma, nu, phi, tauc, maxit=1000, tol=1E-8):
-    V_prime_p = Pi@V_prime_start
+    V_prime_p = Pi @ V_prime_start
     V_prime_old = V_prime_start    
     ite = 0
     err = 1
@@ -248,7 +248,7 @@ taun = ss['taun']
 # Distributional steady-state variables
 e_grid = ss.internals['household']['e_grid']
 a_grid = ss.internals['household']['a_grid']
-D = ss.internals['household']['Dbeg']
+D_ss = ss.internals['household']['Dbeg']
 pi_e =  ss.internals['household']['pi_e']
 Pi = ss.internals['household']['Pi']
 a_ss = ss.internals['household']['a']
@@ -265,10 +265,23 @@ T_ss = transfers(pi_e, Div_ss, Transfer_ss, e_grid)
 
 # Sort assets into bins
 nbin = np.zeros(100)
-nbin[1], nbin[2] = 0.5, 1
-nbin[3:] = np.arange(1.5, 150, 148.5 / 97)
-nbin = np.arange(0, 150, 1.5)
+nbin[0], nbin[1], nbin[2], nbin[3] = 0, 0.0000001, 0.5, 1
+nbin[3:] = np.arange(1, ss['amax'], ss['amax'] / 97)
+nbin = a_grid
+# nbin = np.arange(0, ss['amax'], ss['amax'] / 100)
 a_bin = np.digitize(a_ss, nbin)
+
+# Wealth distribution
+a_flag, a_dist, D_dist = np.zeros((nE, nA, len(nbin))), np.zeros((nE, nA, len(nbin))), np.zeros((nE, nA, len(nbin)))
+a_tot, D_tot = np.zeros(len(nbin)), np.zeros(len(nbin))
+for i in range(0, len(nbin)):
+    a_flag[:, :, i] = np.where(a_bin == i+1, 1, 0) # returns 1 if true, 0 otherwise
+    D_dist[:, :, i] = np.multiply(D_ss, a_flag[:, :, i])
+    a_dist[:, :, i] = np.multiply(a_ss, D_dist[:, :, i])
+    D_tot[i] = np.sum(D_dist[:, :, i])
+    a_tot[i] = np.sum(a_dist[:, :, i])
+ 
+# plt.plot(a_grid, D_ss)
 
 # Zero net present value shock
 shock = np.zeros(T)
@@ -282,7 +295,7 @@ for x in range(T):
 # Consumption tax policy
 # =============================================================================
 
-print("FIRST POLICY")
+print("TAX POLICY")
 dtauc = - shock 
     
 # Aggregate transition dynamics
@@ -294,8 +307,7 @@ path_tauc = tauc + dtauc
 
 # Initialize individual consumption paths
 V_prime_p = (1 + r_ss) / (1 + tauc) * c_ss ** (-gamma)
-all_c = np.zeros((nE, nA, T))
-all_n = np.zeros((nE, nA, T))
+all_c, all_n = np.zeros((nE, nA, T)), np.zeros((nE, nA, T))
 
 # Compute all individual consumption paths
 print("Computing individual paths...")
@@ -305,31 +317,46 @@ for t in range(T-1, -1, -1):
     all_c[:, :, t] = c  
     all_n[:, :, t] = n
 
-# Select first period only and express as deviation from steady state
+# Select first period only
 c_first = all_c[:, :, 0]
+n_first = all_n[:, :, 0]
+    
+# Express as deviation from steady state
 c_dev = (c_first - c_ss) / c_ss
+n_dev = (n_first - n_ss) / n_ss
+# c_dev = c_first
+# n_dev = n_first
 
-# Weight each consumption response by mass of agents with given asset value
-a_dist = D_dist = c_dist =  np.zeros((nE, nA, len(nbin)))
-c_tauc = D_total = np.zeros(len(nbin))
-for i in range(1, len(nbin)):  
-    a_dist[:, :, i] = np.where(a_bin == i, 1, 0) # returns 1 if true, 0 otherwise
-    D_dist[:, :, i] = np.multiply(D, a_dist[:, :, i])
-    # D_total[i] = np.sum(D_dist[:, :, i])
-    c_dist[:, :, i] = np.multiply(c_dev, a_dist[:, :, i])
-    c_tauc[i] = np.sum(c_dist[:, :, i]) #* np.sum(D_dist[:, :, i] )
+# Weight response by mass of agents
+c_tauc, n_tauc = np.zeros(nA), np.zeros(nA)
+for i in range(nA):
+    c_tauc[i] = D_ss[:, i] @ c_dev[:, i]
+    n_tauc[i] = D_ss[:, i] @ n_dev[:, i]
+     
+# Share of hand-to-mouth
+htm = np.sum(D_ss,axis=0)
+htm = htm[0]
+
+# # Weight each consumption response by mass of agents with given asset value
+# a_flag, c_dist, D_dist, n_dist = (np.zeros((nE, nA, len(nbin))), np.zeros((nE, nA, len(nbin))), 
+#                                   np.zeros((nE, nA, len(nbin))), np.zeros((nE, nA, len(nbin))))
+# c_tauc, n_tauc, D_tot = np.zeros(len(nbin)), np.zeros(len(nbin)), np.zeros(len(nbin))
+# for i in range(0, len(nbin)):  
+#     a_flag[:, :, i] = np.where(a_bin == i+1, 1, 0) # returns 1 if true, 0 otherwise
+#     D_dist[:, :, i] = np.multiply(D_ss, a_flag[:, :, i])
+#     c_dist[:, :, i] = np.multiply(c_dev, a_flag[:, :, i])
+#     n_dist[:, :, i] = np.multiply(n_dev, a_flag[:, :, i])
+#     D_tot[i] = np.sum(D_dist[:, :, i])
+#     c_tauc[i] = np.sum(c_dist[:, :, i])
+#     n_tauc[i] = np.sum(n_dist[:, :, i])
 print("Individual paths solved")
-
-
-plt.plot(c_tauc[1:], label = "Consumption tax policy")
-plt.show()
 
 
 # =============================================================================
 # Transfer policy
 # =============================================================================
 
-print("SECOND POLICY")
+print("TRANSFER POLICY")
 dtau = shock 
     
 # Aggregate transition dynamics
@@ -341,28 +368,42 @@ path_transfer = Transfer_ss + dtau
 
 # Initialize individual consumption paths
 V_prime_p = (1 + r_ss) / (1 + tauc) * c_ss ** (-gamma)
-all_c = all_n = np.zeros((nE, nA, T))
+all_c, all_n = np.zeros((nE, nA, T)), np.zeros((nE, nA, T))
 
 # Compute all individual consumption paths
 print("Computing individual paths...")
 for t in range(T-1, -1, -1):
-    V_prime_p, _, c, _ = iterate_household(household_d, V_prime_p, Pi, a_grid, path_w[t], taun, pi_e,
+    V_prime_p, _, c, n = iterate_household(household_d, V_prime_p, Pi, a_grid, path_w[t], taun, pi_e,
                             e_grid, path_r[t], path_div[t], path_transfer[t], beta, gamma, nu, phi, tauc)
-    all_c[:,:,t] = c  
+    all_c[:,:,t] = c
+    all_n[:, :, t] = n
 
-# Select first period only and express as deviation from steady state
+# Select first period only
 c_first = all_c[:, :, 0]
+n_first = all_n[:, :, 0]
+    
+# Express as deviation from steady state
 c_dev = (c_first - c_ss) / c_ss
+n_dev = (n_first - n_ss) / n_ss
 
-# Weight each consumption response by mass of agents with given asset value
-a_dist = D_dist = c_dist =  np.zeros((nE, nA, len(nbin)))
-c_tau = D_total = np.zeros(len(nbin))
-for i in range(1, len(nbin)):  
-    a_dist[:, :, i] = np.where(a_bin == i, 1, 0) # returns 1 if true, 0 otherwise
-    D_dist[:, :, i] = np.multiply(D, a_dist[:, :, i])
-    # D_total[i] = np.sum(D_dist[:, :, i])
-    c_dist[:, :, i] = np.multiply(c_dev, a_dist[:, :, i])
-    c_tau[i] = np.sum(c_dist[:, :, i]) #* np.sum(D_dist[:, :, i] )
+# Weight response by mass of agents
+c_tau, n_tau = np.zeros(nA), np.zeros(nA)
+for i in range(nA):
+    c_tau[i] = D_ss[:, i] @ c_dev[:, i]
+    n_tau[i] = D_ss[:, i] @ n_dev[:, i]
+
+# # Weight each consumption response by mass of agents with given asset value
+# a_flag, c_dist, D_dist, n_dist = (np.zeros((nE, nA, len(nbin))), np.zeros((nE, nA, len(nbin))), 
+#                                   np.zeros((nE, nA, len(nbin))), np.zeros((nE, nA, len(nbin))))
+# c_tau, n_tau, D_tot = np.zeros(len(nbin)), np.zeros(len(nbin)), np.zeros(len(nbin))
+# for i in range(0, len(nbin)):  
+#     a_flag[:, :, i] = np.where(a_bin == i+1, 1, 0) # returns 1 if true, 0 otherwise
+#     D_dist[:, :, i] = np.multiply(D_ss, a_flag[:, :, i])
+#     c_dist[:, :, i] = np.multiply(c_dev, a_flag[:, :, i])
+#     n_dist[:, :, i] = np.multiply(n_dev, a_flag[:, :, i])
+#     D_tot[i] = np.sum(D_dist[:, :, i])
+#     c_tau[i] = np.sum(c_dist[:, :, i])
+#     n_tau[i] = np.sum(n_dist[:, :, i])
 print("Individual paths solved")
 
 
@@ -371,8 +412,16 @@ print("Individual paths solved")
 # =============================================================================
 
 plt.rcParams["figure.figsize"] = (16,7)
-plt.plot(c_tauc[1:], label = "Consumption tax policy")
-plt.plot(c_tau[1:], label = "Transfer policy")
+fig, ax = plt.subplots(1, 2)
+
+ax[0].set_title(r'Consumption $c$')
+ax[0].plot(c_tauc[1:], label="Consumption tax policy")
+ax[0].plot(c_tau[1:],'-.', label="Transfer policy")
+
+ax[1].set_title(r'Labor supply $n$')
+ax[1].plot(n_tauc[1:])
+ax[1].plot(n_tau[1:],'-.')
+
 plt.legend()
 plt.show()
 
