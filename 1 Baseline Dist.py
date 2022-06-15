@@ -341,7 +341,8 @@ path_transfer = Transfer_ss + dtau
 
 # Initialize individual consumption paths
 V_prime_p = (1 + r_ss) / (1 + tauc) * c_ss ** (-gamma)
-all_c = all_n = np.zeros((nE, nA, T))
+all_c = np.zeros((nE, nA, T))
+all_n = np.zeros((nE, nA, T))
 
 # Compute all individual consumption paths
 print("Computing individual paths...")
