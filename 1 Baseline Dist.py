@@ -294,7 +294,8 @@ path_tauc = tauc + dtauc
 
 # Initialize individual consumption paths
 V_prime_p = (1 + r_ss) / (1 + tauc) * c_ss ** (-gamma)
-all_c = all_n = np.zeros((nE, nA, T))
+all_c = np.zeros((nE, nA, T))
+all_n = np.zeros((nE, nA, T))
 
 # Compute all individual consumption paths
 print("Computing individual paths...")
@@ -302,7 +303,7 @@ for t in range(T-1, -1, -1):
     V_prime_p, _, c, n = iterate_household(household_d, V_prime_p, Pi, a_grid, path_w[t], taun, pi_e,
                             e_grid, path_r[t], path_div[t], Transfer_ss, beta, gamma, nu, phi, path_tauc[t])
     all_c[:, :, t] = c  
-    # all_n[:, :, t] = n
+    all_n[:, :, t] = n
 
 # Select first period only and express as deviation from steady state
 c_first = all_c[:, :, 0]
