@@ -4,6 +4,8 @@
 # Initialize
 # =============================================================================
 
+import time
+start_time = time.time()
 import numpy as np
 import matplotlib.pyplot as plt
 from sequence_jacobian import het, simple, create_model             # functions
@@ -275,4 +277,6 @@ for i in range(len(ss_var)):
 print('\nMARKET CLEARING')
 for i in range(len(ss_mkt)):
       print('{:<24s}{:>12.0e}   {:24s}{:>10.0e}'.format(ss_mkt[i][0],ss_mkt[i][1],ss_mkt[i][2],ss_mkt[i][3]))
-print(dash)        
+print(dash)
+
+print("Time elapsed: %s seconds" % (round(time.time() - start_time, 0)))    

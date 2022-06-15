@@ -4,6 +4,8 @@
 # Initialize
 # =============================================================================
 
+import time
+start_time = time.time()
 import numpy as np
 import matplotlib.pyplot as plt
 from sequence_jacobian import het, simple, create_model             # functions
@@ -26,7 +28,7 @@ def bisection_onestep(f,a,b):
             new_b[indxs_b] = mid_point[indxs_b]
         return new_a,new_b
 
-def vec_bisection(f,a,b,iter_max = 100,tol = 1E-11):
+def vec_bisection(f, a, b, iter_max=100, tol=1E-11):
     i = 1
     err = 1
     while i < iter_max and err > tol:
@@ -58,8 +60,8 @@ def household(V_prime_p, a_grid, e_grid, r, w, T, beta, gamma, nu, phi, tauc, ta
     new_grid = ((1 + tauc) * c_prime + a_grid[np.newaxis,:] - (1 - taun) * we[:,np.newaxis] * n_prime 
                 - T[:,np.newaxis])
     wel = (1 + r) * a_grid
-    c = interpolate.interpolate_y(new_grid,wel,c_prime)
-    n = interpolate.interpolate_y(new_grid,wel,n_prime)
+    c = interpolate.interpolate_y(new_grid, wel, c_prime)
+    n = interpolate.interpolate_y(new_grid, wel, n_prime)
     a = wel + (1 - taun) * we[:,np.newaxis] * n + T[:,np.newaxis] - (1 + tauc) * c
     V_prime = (1 + r) / (1 + tauc) * c ** (-gamma)
 
@@ -71,16 +73,16 @@ def household(V_prime_p, a_grid, e_grid, r, w, T, beta, gamma, nu, phi, tauc, ta
         aa = np.zeros((indexes_asset[0].size)) + 1E-5
         rest = wel[indexes_asset[1]] - a_grid[0] + T[indexes_asset[0]]
         bb = c[indexes_asset] + 0.5
-        c[indexes_asset] = vec_bisection(lambda c : consumption(c,we[indexes_asset[0]],
-                                                                 rest,gamma,nu,phi,tauc,taun),aa,bb)
+        c[indexes_asset] = vec_bisection(lambda c : consumption(c, we[indexes_asset[0]], rest,
+                                                                gamma, nu, phi, tauc, taun), aa, bb)
         n[indexes_asset] = ((1 - taun) * we[indexes_asset[0]] 
                             / ((1 + tauc) * phi * c[indexes_asset] ** gamma)) ** (1/nu)
         V_prime[indexes_asset] = (1 + r) / (1 + tauc) * (c[indexes_asset]) ** (-gamma)
     return V_prime, a, c, n
 
 def make_grid(rho_e, sd_e, nE, amin, amax, nA):
-    e_grid, pi_e, Pi = grids.markov_rouwenhorst(rho = rho_e, sigma = sd_e, N = nE)
-    a_grid = grids.agrid(amin = amin, amax = amax, n = nA)
+    e_grid, pi_e, Pi = grids.markov_rouwenhorst(rho=rho_e, sigma=sd_e, N=nE)
+    a_grid = grids.agrid(amin=amin, amax=amax, n=nA)
     return e_grid, Pi, a_grid, pi_e
 
 def transfers(pi_e, Div, Transfer, e_grid):
@@ -90,7 +92,7 @@ def transfers(pi_e, Div, Transfer, e_grid):
     T = div + transfer
     return T
 
-household_inp = household.add_hetinputs([make_grid,transfers])
+household_inp = household.add_hetinputs([make_grid, transfers])
 
 def labor_supply(n, e_grid):
     ne = e_grid[:, np.newaxis] * n
@@ -483,4 +485,5 @@ for i in range(len(dif)):
         print(dash)
     else:
         print('{:<20s} {:^12.3f}  {:>15.3f}'.format(dif[i][0],dif[i][1],dif[i][2]))
-    
+        
+print("Time elapsed: %s seconds" % (round(time.time() - start_time, 0)))   
