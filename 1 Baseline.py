@@ -4,6 +4,7 @@
 # Initialize
 # =============================================================================
 
+print("BASELINE MODEL")
 import time
 start_time = time.time()
 import numpy as np
@@ -181,6 +182,172 @@ G = hank.solve_jacobian(ss, unknowns, targets, exogenous, T=T)
 print("Jacobian solved")
 
 
+
+# =============================================================================
+# Steady-state properties
+# =============================================================================
+
+# Parameters
+nE = ss['nE']
+nA = ss['nA']
+nu = ss['nu']
+phi = ss['phi']
+tauc = ss['tauc']
+taun = ss['taun']
+
+# Steady-state variables
+e_grid = ss.internals['household']['e_grid']
+a_grid = ss.internals['household']['a_grid']
+D_ss = ss.internals['household']['Dbeg']
+pi_e =  ss.internals['household']['pi_e']
+Pi = ss.internals['household']['Pi']
+a_ss = ss.internals['household']['a']
+c_ss = ss.internals['household']['c']
+n_ss = ss.internals['household']['n']
+N_ss = ss['N']
+r_ss = ss['r']
+Div_ss = ss['Div']
+Transfer_ss = ss['Transfer']
+w_ss = ss['w']
+T_ss = transfers(pi_e, Div_ss, Transfer_ss, e_grid)
+
+
+# Share of hand-to-mouth
+D_dist = np.sum(D_ss, axis=0)
+htm = D_dist[0]
+
+# Share of hand-to-mouth, other method
+zero_asset = np.where(a_ss == 0)
+htm = np.sum(D_ss[zero_asset])
+
+# Wealth distribution
+a_tot = np.sum(np.multiply(a_ss, D_ss))
+a_dist = np.sum(np.multiply(a_ss, D_ss), axis=0)
+a_bin = a_dist.reshape(-1, 100, order='F').sum(axis=0)
+
+# Income distribution
+y_ss = ((1 - taun) * w_ss * np.multiply(n_ss, e_grid[:, None]) + r_ss * a_ss + T_ss[:, None]) / (1 + tauc)
+y_dist = np.sum(np.multiply(y_ss, D_ss), axis=0)
+y_tot = np.sum(y_dist)
+y_bin = y_dist.reshape(-1, 100, order='F').sum(axis=0)
+
+# Consumption distribution
+c_tot = np.sum(np.multiply(c_ss, D_ss))
+c_dist = np.sum(np.multiply(c_ss, D_ss), axis=0)
+c_bin = c_dist.reshape(-1, 100, order='F').sum(axis=0)
+
+# Labor supply distribution
+n_tot = np.sum(np.multiply(n_ss, D_ss))
+n_dist = np.sum(np.multiply(n_ss, D_ss), axis=0)
+n_bin = n_dist.reshape(-1, 100, order='F').sum(axis=0)
+
+# Wealth Lorenz curve CHECK 
+from numpy import trapz
+a_lorenz = trapz(np.cumsum(a_dist / a_tot), dx=1/nA) # area below Lorenz curve
+a_gini = (0.5 - a_lorenz) / 0.5
+print("Wealth Gini =", np.round(a_gini, 3))
+
+# Income Lorenz curve CHECK 
+y_lorenz = trapz(np.cumsum(y_dist / y_tot), dx=1/nA) # area below Lorenz curve
+y_gini = (0.5 - y_lorenz) / 0.5
+print("Income Gini =", np.round(y_gini, 3))
+
+# Plot distributions
+fig, ax = plt.subplots(2, 4)
+
+ax[0, 0].set_title(r'Skill distribution $e$')
+ax[0, 0].plot(e_grid, pi_e)
+ax[0, 0].fill_between(e_grid, pi_e)
+
+ax[0, 1].set_title(r'Wealth distribution $a$')
+ax[0, 1].plot(a_bin / a_tot)
+ax[0, 1].fill_between(range(100), a_bin / a_tot)
+
+ax[0, 2].set_title(r'Income distribution $y$')
+ax[0, 2].plot(y_bin / y_tot)
+ax[0, 2].fill_between(range(100), y_bin / y_tot)
+
+ax[0, 3].set_title(r'Consumption distribution $c$')
+ax[0, 3].plot(c_bin / c_tot)
+ax[0, 3].fill_between(range(100), c_bin / c_tot)
+
+ax[1, 0].set_title(r'Labor supply distribution $n$')
+ax[1, 0].plot(n_bin / n_tot)
+ax[1, 0].fill_between(range(100), n_bin / n_tot)
+
+ax[1, 1].set_title(r'Wealth Lorenz curve')
+# ax[1, 1].plot(np.cumsum(mass[asset_pos]), np.cumsum(asset_mass / total_wealth)) 
+ax[1, 1].plot(np.cumsum(D_dist), np.cumsum(a_dist / a_tot)) 
+ax[1, 1].plot([0, 1], [0, 1], '-')
+
+ax[1, 2].set_title(r'Income Lorenz curve')
+ax[1, 2].plot(np.cumsum(D_dist), np.cumsum(y_dist / y_tot)) 
+ax[1, 2].plot([0, 1], [0, 1], '-')
+plt.show()
+
+# Show steady state
+ss_param = [['Discount factor', ss['beta'], 'Intertemporal elasticity', ss['gamma']],
+        ['Labor supply elasticity', 1 / ss['nu'], 'Labor supply disutility', ss['phi']],  
+        ['Goods substitutability', ss['mu'] / (ss['mu'] - 1) , 'Price markup', ss['mu']],
+        ['Phillips curve slope', ss['kappa'], 'Taylor rule inflation ', ss['phi_pi']],
+        ['Consumption tax rate', ss['tauc'], 'Labor tax rate', ss['taun']]]
+
+ss_var = [['Output', ss['Y'], 'Government debt', ss['A']],
+        ['Consumption', ss['C'], 'Transfers', ss['Transfer']],
+        ['Hours', ss['N'], 'Dividends', ss['Div']], 
+        ['Wage', ss['w'], 'Marginal cost', ss['w'] / ss['Z']],
+        ['Inflation', ss['pi'], 'Consumption tax revenue', ss['tauc'] * ss['C']],
+        ['Nominal interest rate', ss['r']*(1+ss['pi']), 'Labor tax revenue', ss['taun']*ss['N']*ss['w']],
+        ['Real interest rate', ss['r'], 'Debt servicing  cost', ss['r'] * ss['A']]]
+
+ss_mom = [['Share of hand-to-mouth', htm, 'Gini index', a_gini]]
+
+ss_mkt = [['Bond market', ss['asset_mkt'], 'Labor market', ss['labor_mkt']],
+          ['Goods market (resid)', ss['goods_mkt'], 'Government budget', ss['govt_res']]]
+
+dash = '-' * 73
+print(dash)
+print('PARAMETERS')
+for i in range(len(ss_param)):
+      print('{:<24s}{:>12.3f}   {:24s}{:>10.3f}'.format(ss_param[i][0],ss_param[i][1],ss_param[i][2],ss_param[i][3]))
+print('\nAGGREGATE VARIABLES IN STEADY STATE')
+for i in range(len(ss_var)):
+      print('{:<24s}{:>12.3f}   {:24s}{:>10.3f}'.format(ss_var[i][0],ss_var[i][1],ss_var[i][2],ss_var[i][3]))
+print('\nDISTRIBUTIONAL VARIABLES IN STEADY STATE')
+for i in range(len(ss_mom)):
+      print('{:<24s}{:>12.3f}   {:24s}{:>10.3f}'.format(ss_mom[i][0],ss_mom[i][1],ss_mom[i][2],ss_mom[i][3]))
+print('\nMARKET CLEARING')
+for i in range(len(ss_mkt)):
+      print('{:<24s}{:>12.0e}   {:24s}{:>10.0e}'.format(ss_mkt[i][0],ss_mkt[i][1],ss_mkt[i][2],ss_mkt[i][3]))
+print(dash)
+
+
+# OLD STUFF 
+
+# # Wealth distribution and Gini coefficient on wealth
+# ntype = np.size(ss.internals['household']['a'])
+# asset_pos = np.argsort(ss.internals['household']['a'], axis=None) # count position of each array element, ascending order
+# asset = np.reshape(ss.internals['household']['a'], (ntype, )) # flatten array
+# mass = np.reshape(ss.internals['household']['Dbeg'], (ntype, )) # flatten array
+# asset_mass = np.multiply(asset[asset_pos], mass[asset_pos]) / ss['A'] # multiply each asset type by its respective density
+# total_wealth = np.sum(asset_mass, axis=None)
+
+
+# # Consumption distribution
+# cons_pos = np.argsort(ss.internals['household']['c'], axis=None) # count position of each array element, ascending order
+# cons = np.reshape(ss.internals['household']['c'], (ntype, )) # flatten array
+# cons_mass = np.multiply(cons[asset_pos], mass[asset_pos]) / ss['C']# multiply each consumption type by its respective density
+# # total_cons = np.sum(cons_mass, axis=None)
+# # lorenz_cons = trapz(np.cumsum(cons_mass / total_cons), dx=1/np.size(ss.internals['household']['a'])) # area below Lorenz curve
+# # gini_cons = (0.5 - lorenz_cons) / 0.5
+# # print("Consumption Gini =", np.round(gini_cons, 3))
+
+# # Labor supply distribution
+# labor_pos = np.argsort(ss.internals['household']['n'], axis=None) # count position of each array element, ascending order
+# labor = np.reshape(ss.internals['household']['n'], (ntype, )) # flatten array
+# labor_mass = np.multiply(labor[asset_pos], mass[asset_pos]) / ss['N']  # multiply each consumption type by its respective density
+
+
 # =============================================================================
 # Impulse response functions
 # =============================================================================
@@ -256,68 +423,6 @@ plt.show()
 # Steady-state and dynamic properties
 # =============================================================================
 
-# Fraction of hand-to-mouth households
-zero_asset = np.where(ss.internals['household']['a'] == 0)
-htm = ss.internals['household']['Dbeg'][zero_asset]
-htm1 = ss.internals['household']['D'][zero_asset]
-htm = sum(htm)
-htm1 = sum(htm1)
-# print('Share of hand-to-mouth households = ', np.round(htm, 3) * 100,'%')
-#print('Share of hand-to-mouth D    ', np.round(htm1, 3) * 100,'%')
-
-# Wealth distribution and Gini coefficient on wealth
-ntype = np.size(ss.internals['household']['a'])
-asset_pos = np.argsort(ss.internals['household']['a'], axis=None) # count position of each array element, ascending order
-asset = np.reshape(ss.internals['household']['a'], (ntype, )) # flatten array
-mass = np.reshape(ss.internals['household']['Dbeg'], (ntype, )) # flatten array
-asset_mass = np.multiply(asset[asset_pos], mass[asset_pos]) / ss['A'] # multiply each asset type by its respective density
-total_wealth = np.sum(asset_mass, axis=None)
-from numpy import trapz
-lorenz_wealth = trapz(np.cumsum(asset_mass / total_wealth), dx=1/np.size(ss.internals['household']['a'])) # area below Lorenz curve
-gini_wealth = (0.5 - lorenz_wealth) / 0.5
-# print("Wealth Gini =", np.round(gini_wealth, 3))
-
-# Consumption distribution
-cons_pos = np.argsort(ss.internals['household']['c'], axis=None) # count position of each array element, ascending order
-cons = np.reshape(ss.internals['household']['c'], (ntype, )) # flatten array
-cons_mass = np.multiply(cons[asset_pos], mass[asset_pos]) / ss['C']# multiply each consumption type by its respective density
-# total_cons = np.sum(cons_mass, axis=None)
-# lorenz_cons = trapz(np.cumsum(cons_mass / total_cons), dx=1/np.size(ss.internals['household']['a'])) # area below Lorenz curve
-# gini_cons = (0.5 - lorenz_cons) / 0.5
-# print("Consumption Gini =", np.round(gini_cons, 3))
-
-# Labor supply distribution
-labor_pos = np.argsort(ss.internals['household']['n'], axis=None) # count position of each array element, ascending order
-labor = np.reshape(ss.internals['household']['n'], (ntype, )) # flatten array
-labor_mass = np.multiply(labor[asset_pos], mass[asset_pos]) / ss['N']  # multiply each consumption type by its respective density
-
-# # plt.plot(cons[cons_pos], cons_mass * 100)
-# plt.plot(labor[labor_pos], labor_mass * 100)
-# plt.show()
-
-# Plot distributions
-fig, ax = plt.subplots(2, 4)
-
-ax[0, 0].set_title(r'Skill distribution $e$')
-ax[0, 0].plot(ss.internals['household']['e_grid'], ss.internals['household']['pi_e'])
-ax[0, 0].fill_between(ss.internals['household']['e_grid'], ss.internals['household']['pi_e'])
-
-ax[0, 1].set_title(r'Wealth distribution $a$')
-ax[0, 1].plot(asset[asset_pos], asset_mass)
-
-ax[0, 2].set_title(r'Consumption distribution $c$')
-ax[0, 2].plot(cons[cons_pos], cons_mass)
-
-ax[0, 3].set_title(r'Labor supply distribution $n$')
-ax[0, 3].plot(labor[labor_pos], labor_mass)
-# ax.flat[0, 3].set_xlim(0, 10)
-# ax[0 ,3].plt.xlim([0, 10]) 
-
-ax[1, 0].set_title(r'Lorenz curve')
-ax[1, 0].plot(np.cumsum(mass[asset_pos]), np.cumsum(asset_mass / total_wealth)) 
-ax[1, 0].plot([0, 1], [0, 1], '-')
-plt.show()
-
 # Discounted cumulative sum
 cumtau, cumY, cumC, cumP, cumW, cumD = np.zeros(T),np.zeros(T),np.zeros(T),np.zeros(T),np.zeros(T),np.zeros(T)
 discount = (1 / (1 + ss['r']))
@@ -346,42 +451,6 @@ for i in range(len(dif)):
         print(dash)
     else:
         print('{:<20s} {:^12.3f}  {:>15.3f}'.format(dif[i][0],dif[i][1],dif[i][2]))
-
-# Show steady state
-ss_param = [['Discount factor', ss['beta'], 'Intertemporal elasticity', ss['gamma']],
-        ['Labor supply elasticity', 1 / ss['nu'], 'Labor supply disutility', ss['phi']],  
-        ['Goods substitutability', ss['mu'] / (ss['mu'] - 1) , 'Price markup', ss['mu']],
-        ['Phillips curve slope', ss['kappa'], 'Taylor rule inflation ', ss['phi_pi']],
-        ['Consumption tax rate', ss['tauc'], 'Labor tax rate', ss['taun']]]
-
-ss_var = [['Output', ss['Y'], 'Government debt', ss['A']],
-        ['Consumption', ss['C'], 'Transfers', ss['Transfer']],
-        ['Hours', ss['N'], 'Dividends', ss['Div']], 
-        ['Wage', ss['w'], 'Marginal cost', ss['w'] / ss['Z']],
-        ['Inflation', ss['pi'], 'Consumption tax revenue', ss['tauc'] * ss['C']],
-        ['Nominal interest rate', ss['r']*(1+ss['pi']), 'Labor tax revenue', ss['taun']*ss['N']*ss['w']],
-        ['Real interest rate', ss['r'], 'Debt servicing  cost', ss['r'] * ss['A']]]
-
-ss_mom = [['Share of hand-to-mouth', htm, 'Gini index', gini_wealth]]
-
-ss_mkt = [['Bond market', ss['asset_mkt'], 'Labor market', ss['labor_mkt']],
-          ['Goods market (resid)', ss['goods_mkt'], 'Government budget', ss['govt_res']]]
-
-dash = '-' * 73
-print(dash)
-print('PARAMETERS')
-for i in range(len(ss_param)):
-      print('{:<24s}{:>12.3f}   {:24s}{:>10.3f}'.format(ss_param[i][0],ss_param[i][1],ss_param[i][2],ss_param[i][3]))
-print('\nAGGREGATE VARIABLES IN STEADY STATE')
-for i in range(len(ss_var)):
-      print('{:<24s}{:>12.3f}   {:24s}{:>10.3f}'.format(ss_var[i][0],ss_var[i][1],ss_var[i][2],ss_var[i][3]))
-print('\nDISTRIBUTIONAL VARIABLES IN STEADY STATE')
-for i in range(len(ss_mom)):
-      print('{:<24s}{:>12.3f}   {:24s}{:>10.3f}'.format(ss_mom[i][0],ss_mom[i][1],ss_mom[i][2],ss_mom[i][3]))
-print('\nMARKET CLEARING')
-for i in range(len(ss_mkt)):
-      print('{:<24s}{:>12.0e}   {:24s}{:>10.0e}'.format(ss_mkt[i][0],ss_mkt[i][1],ss_mkt[i][2],ss_mkt[i][3]))
-print(dash)
 
 
 # =============================================================================
