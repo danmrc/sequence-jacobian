@@ -4,6 +4,7 @@
 # Initialize
 # =============================================================================
 
+print("BASELINE MODEL")
 import time
 start_time = time.time()
 import numpy as np
@@ -85,11 +86,11 @@ def make_grid(rho_e, sd_e, nE, amin, amax, nA):
     a_grid = grids.agrid(amin=amin, amax=amax, n=nA)
     return e_grid, Pi, a_grid, pi_e
 
-def transfers(pi_e, Div, Transfer, e_grid):
+def transfers(pi_e, Div, Tau, e_grid):
     tax_rule, div_rule = np.ones(e_grid.size), e_grid #np.ones(e_grid.size)
     div = Div / np.sum(pi_e * div_rule) * div_rule
-    transfer =  Transfer / np.sum(pi_e * tax_rule) * tax_rule 
-    T = div + transfer
+    tau =  Tau / np.sum(pi_e * tax_rule) * tax_rule 
+    T = div + tau
     return T
 
 household_inp = household.add_hetinputs([make_grid, transfers])
@@ -119,10 +120,10 @@ def monetary(pi, rstar, phi_pi):
     return r, i
 
 @simple
-def fiscal(r, Transfer, B, C, L, tauc, taun, w):
-    govt_res = Transfer + (1 + r) * B(-1) - tauc * C - taun * w * L - B
-    Deficit = tauc * C + taun * w * L - Transfer # primary surplus
-    Trans = Transfer
+def fiscal(r, Tau, B, C, L, tauc, taun, w):
+    govt_res = Tau + (1 + r) * B(-1) - tauc * C - taun * w * L - B
+    Deficit = tauc * C + taun * w * L - Tau # primary surplus
+    Trans = Tau
     return govt_res, Deficit, Trans
 
 @simple
@@ -156,11 +157,11 @@ calibration = {'gamma': 1.0, 'nu': 2.0, 'rho_e': 0.966, 'sd_e': 0.50, 'nE': 8,
                'mu': 1.2, 'kappa': 0.1, 'rstar': 0.005, 'phi_pi': 0.0, 'B': 6.0, 
                'tauc': 0.1, 'taun': 0.036}
 
-unknowns_ss = {'beta': 0.986, 'phi': 0.8, 'Transfer': 0.05}
+unknowns_ss = {'beta': 0.986, 'phi': 0.8, 'Tau': 0.05}
 targets_ss = {'asset_mkt': 0, 'labor_mkt': 0, 'govt_res': 0}
 print("Computing steady state...")
 ss0 = hank_ss.solve_steady_state(calibration, unknowns_ss, targets_ss, solver="hybr")
-print("Steady state solved")
+print("Done")
 
 
 # =============================================================================
@@ -172,13 +173,13 @@ hank = create_model(blocks, name="One-Asset HANK")
 ss = hank.steady_state(ss0)
 
 T = 300
-exogenous = ['rstar', 'Transfer', 'Z', 'tauc']
+exogenous = ['rstar', 'Tau', 'Z', 'tauc']
 unknowns = ['pi', 'w', 'Y', 'B']
 targets = ['nkpc_res', 'asset_mkt', 'labor_mkt', 'govt_res']
 
 print("Computing Jacobian...")
 G = hank.solve_jacobian(ss, unknowns, targets, exogenous, T=T)
-print("Jacobian solved")
+print("Done")
 
 
 # =============================================================================
@@ -213,12 +214,12 @@ def household_d(V_prime_p, a_grid, e_grid, r, w, T, beta, gamma, nu, phi, tauc, 
     return V_prime, a, c, n
 
 def iterate_household(foo, V_prime_start, Pi, a_grid, w, taun, pi_e, e_grid, r, Div, 
-                      Transfer, beta, gamma, nu, phi, tauc, maxit=1000, tol=1E-8):
+                      Tau, beta, gamma, nu, phi, tauc, maxit=1000, tol=1E-8):
     V_prime_p = Pi @ V_prime_start
     V_prime_old = V_prime_start    
     ite = 0
     err = 1
-    T = transfers(pi_e, Div, Transfer, e_grid)
+    T = transfers(pi_e, Div, Tau, e_grid)
     
     while ite < maxit and err > tol:
         #c_old = np.copy(c)
@@ -245,6 +246,13 @@ phi = ss['phi']
 tauc = ss['tauc']
 taun = ss['taun']
 
+# Aggregate steady-state variables
+Div_ss = ss['Div']
+N_ss = ss['N']
+r_ss = ss['r']
+Tau_ss = ss['Tau']
+w_ss = ss['w']
+
 # Distributional steady-state variables
 e_grid = ss.internals['household']['e_grid']
 a_grid = ss.internals['household']['a_grid']
@@ -254,14 +262,7 @@ Pi = ss.internals['household']['Pi']
 a_ss = ss.internals['household']['a']
 c_ss = ss.internals['household']['c']
 n_ss = ss.internals['household']['n']
-
-# Aggregate steady-state variables
-N_ss = ss['N']
-r_ss = ss['r']
-Div_ss = ss['Div']
-Transfer_ss = ss['Transfer']
-w_ss = ss['w']
-T_ss = transfers(pi_e, Div_ss, Transfer_ss, e_grid)
+T_ss = transfers(pi_e, Div_ss, Tau_ss, e_grid)
 
 # Sort assets into bins
 nbin = np.zeros(100)
@@ -270,18 +271,6 @@ nbin[3:] = np.arange(1, ss['amax'], ss['amax'] / 97)
 nbin = a_grid
 # nbin = np.arange(0, ss['amax'], ss['amax'] / 100)
 a_bin = np.digitize(a_ss, nbin)
-
-# Wealth distribution
-a_flag, a_dist, D_dist = np.zeros((nE, nA, len(nbin))), np.zeros((nE, nA, len(nbin))), np.zeros((nE, nA, len(nbin)))
-a_tot, D_tot = np.zeros(len(nbin)), np.zeros(len(nbin))
-for i in range(0, len(nbin)):
-    a_flag[:, :, i] = np.where(a_bin == i+1, 1, 0) # returns 1 if true, 0 otherwise
-    D_dist[:, :, i] = np.multiply(D_ss, a_flag[:, :, i])
-    a_dist[:, :, i] = np.multiply(a_ss, D_dist[:, :, i])
-    D_tot[i] = np.sum(D_dist[:, :, i])
-    a_tot[i] = np.sum(a_dist[:, :, i])
- 
-# plt.plot(a_grid, D_ss)
 
 # Zero net present value shock
 shock = np.zeros(T)
@@ -292,11 +281,14 @@ for x in range(T):
 
 
 # =============================================================================
-# Consumption tax policy
+# Simulating policies
 # =============================================================================
 
+# Consumption tax policy
 print("TAX POLICY")
-dtauc = - shock 
+# dtauc = - shock 
+rhos = 0.9
+dtauc = - 0.03 * rhos ** (np.arange(T)[:, np.newaxis])
     
 # Aggregate transition dynamics
 path_n = N_ss + G['N']['tauc'] @ dtauc
@@ -307,122 +299,254 @@ path_tauc = tauc + dtauc
 
 # Initialize individual consumption paths
 V_prime_p = (1 + r_ss) / (1 + tauc) * c_ss ** (-gamma)
-all_c, all_n = np.zeros((nE, nA, T)), np.zeros((nE, nA, T))
+c_all_tauc, n_all_tauc = np.zeros((nE, nA, T)), np.zeros((nE, nA, T))
 
 # Compute all individual consumption paths
 print("Computing individual paths...")
 for t in range(T-1, -1, -1):
     V_prime_p, _, c, n = iterate_household(household_d, V_prime_p, Pi, a_grid, path_w[t], taun, pi_e,
-                            e_grid, path_r[t], path_div[t], Transfer_ss, beta, gamma, nu, phi, path_tauc[t])
-    all_c[:, :, t] = c  
-    all_n[:, :, t] = n
+                            e_grid, path_r[t], path_div[t], Tau_ss, beta, gamma, nu, phi, path_tauc[t])
+    c_all_tauc[:, :, t] = c  
+    n_all_tauc[:, :, t] = n
+print("Done")
 
-# Select first period only
-c_first = all_c[:, :, 0]
-n_first = all_n[:, :, 0]
-    
-# Express as deviation from steady state
-c_dev = (c_first - c_ss) / c_ss
-n_dev = (n_first - n_ss) / n_ss
-# c_dev = c_first
-# n_dev = n_first
-
-# Weight response by mass of agents
-c_tauc, n_tauc = np.zeros(nA), np.zeros(nA)
-for i in range(nA):
-    c_tauc[i] = D_ss[:, i] @ c_dev[:, i]
-    n_tauc[i] = D_ss[:, i] @ n_dev[:, i]
-     
-# Share of hand-to-mouth
-htm = np.sum(D_ss,axis=0)
-htm = htm[0]
-
-# # Weight each consumption response by mass of agents with given asset value
-# a_flag, c_dist, D_dist, n_dist = (np.zeros((nE, nA, len(nbin))), np.zeros((nE, nA, len(nbin))), 
-#                                   np.zeros((nE, nA, len(nbin))), np.zeros((nE, nA, len(nbin))))
-# c_tauc, n_tauc, D_tot = np.zeros(len(nbin)), np.zeros(len(nbin)), np.zeros(len(nbin))
-# for i in range(0, len(nbin)):  
-#     a_flag[:, :, i] = np.where(a_bin == i+1, 1, 0) # returns 1 if true, 0 otherwise
-#     D_dist[:, :, i] = np.multiply(D_ss, a_flag[:, :, i])
-#     c_dist[:, :, i] = np.multiply(c_dev, a_flag[:, :, i])
-#     n_dist[:, :, i] = np.multiply(n_dev, a_flag[:, :, i])
-#     D_tot[i] = np.sum(D_dist[:, :, i])
-#     c_tauc[i] = np.sum(c_dist[:, :, i])
-#     n_tauc[i] = np.sum(n_dist[:, :, i])
-print("Individual paths solved")
-
-
-# =============================================================================
 # Transfer policy
-# =============================================================================
-
 print("TRANSFER POLICY")
-dtau = shock 
+# dtau = shock
+dtau = - dtauc
     
 # Aggregate transition dynamics
-path_n = N_ss + G['N']['Transfer'] @ dtau
-path_r = r_ss + G['r']['Transfer'] @ dtau
-path_w = w_ss + G['w']['Transfer'] @ dtau
-path_div = Div_ss + G['Div']['Transfer'] @ dtau
-path_transfer = Transfer_ss + dtau
+path_n = N_ss + G['N']['Tau'] @ dtau
+path_r = r_ss + G['r']['Tau'] @ dtau
+path_w = w_ss + G['w']['Tau'] @ dtau
+path_div = Div_ss + G['Div']['Tau'] @ dtau
+path_tau = Tau_ss + dtau
 
 # Initialize individual consumption paths
 V_prime_p = (1 + r_ss) / (1 + tauc) * c_ss ** (-gamma)
-all_c, all_n = np.zeros((nE, nA, T)), np.zeros((nE, nA, T))
+c_all_tau, n_all_tau = np.zeros((nE, nA, T)), np.zeros((nE, nA, T))
 
 # Compute all individual consumption paths
 print("Computing individual paths...")
 for t in range(T-1, -1, -1):
     V_prime_p, _, c, n = iterate_household(household_d, V_prime_p, Pi, a_grid, path_w[t], taun, pi_e,
-                            e_grid, path_r[t], path_div[t], path_transfer[t], beta, gamma, nu, phi, tauc)
-    all_c[:,:,t] = c
-    all_n[:, :, t] = n
+                            e_grid, path_r[t], path_div[t], path_tau[t], beta, gamma, nu, phi, tauc)
+    c_all_tau[:,:,t] = c
+    n_all_tau[:, :, t] = n
+print("Done")
 
-# Select first period only
-c_first = all_c[:, :, 0]
-n_first = all_n[:, :, 0]
+# # Interest rate policy
+# print("INTEREST RATE POLICY")
+# drstar = -0.02 * rhos ** (np.arange(T)[:, np.newaxis])
+
+# # Aggregate transition dynamics
+# path_n = N_ss + G['N']['rstar'] @ drstar
+# path_r = r_ss + G['r']['rstar'] @ drstar
+# path_w = w_ss + G['w']['rstar'] @ drstar
+# path_div = Div_ss + G['Div']['rstar'] @ drstar
+# path_tau = Tau_ss + G['Tau']['rstar'] @ drstar
+
+# # Initialize individual consumption paths
+# V_prime_p = (1 + r_ss) / (1 + tauc) * c_ss ** (-gamma)
+# c_all_rstar, n_all_rstar = np.zeros((nE, nA, T)), np.zeros((nE, nA, T))
+
+# # Compute all individual consumption paths
+# print("Computing individual paths...")
+# for t in range(T-1, -1, -1):
+#     V_prime_p, _, c, n = iterate_household(household_d, V_prime_p, Pi, a_grid, path_w[t], taun, pi_e,
+#                             e_grid, path_r[t], path_div[t], path_tau[t], beta, gamma, nu, phi, tauc)
+#     c_all_rstar[:, :, t] = c  
+#     n_all_rstar[:, :, t] = n
+# print("Done")
+
+
+# =============================================================================
+# Impact response by wealth percentile
+# =============================================================================
     
-# Express as deviation from steady state
-c_dev = (c_first - c_ss) / c_ss
-n_dev = (n_first - n_ss) / n_ss
+# Select first period only and express as deviation from steady state
+c_first_dev_tauc = (c_all_tauc[:, :, 0] - c_ss) / c_ss
+n_first_dev_tauc = (n_all_tauc[:, :, 0] - n_ss) / n_ss
+c_first_dev_tau = (c_all_tau[:, :, 0] - c_ss) / c_ss
+n_first_dev_tau = (n_all_tau[:, :, 0] - n_ss) / n_ss
 
-# Weight response by mass of agents
-c_tau, n_tau = np.zeros(nA), np.zeros(nA)
+# Method 1: Weigh response by mass of agents
+c_first_tauc, n_first_tauc, c_first_tau, n_first_tau = np.zeros(nA), np.zeros(nA), np.zeros(nA), np.zeros(nA)
 for i in range(nA):
-    c_tau[i] = D_ss[:, i] @ c_dev[:, i]
-    n_tau[i] = D_ss[:, i] @ n_dev[:, i]
+    c_first_tauc[i] = c_first_dev_tauc[:, i] @ D_ss[:, i]
+    n_first_tauc[i] = n_first_dev_tauc[:, i] @ D_ss[:, i]
+    c_first_tau[i] = c_first_dev_tau[:, i] @ D_ss[:, i]
+    n_first_tau[i] = n_first_dev_tau[:, i] @ D_ss[:, i]
+       
+# Pool into percentile bins
+c_first_bin_tauc = c_first_tauc.reshape(-1, 100, order='F').sum(axis=0)
+n_first_bin_tauc = n_first_tauc.reshape(-1, 100, order='F').sum(axis=0)
+c_first_bin_tau = c_first_tau.reshape(-1, 100, order='F').sum(axis=0)
+n_first_bin_tau = n_first_tau.reshape(-1, 100, order='F').sum(axis=0)
 
-# # Weight each consumption response by mass of agents with given asset value
-# a_flag, c_dist, D_dist, n_dist = (np.zeros((nE, nA, len(nbin))), np.zeros((nE, nA, len(nbin))), 
-#                                   np.zeros((nE, nA, len(nbin))), np.zeros((nE, nA, len(nbin))))
-# c_tau, n_tau, D_tot = np.zeros(len(nbin)), np.zeros(len(nbin)), np.zeros(len(nbin))
-# for i in range(0, len(nbin)):  
-#     a_flag[:, :, i] = np.where(a_bin == i+1, 1, 0) # returns 1 if true, 0 otherwise
-#     D_dist[:, :, i] = np.multiply(D_ss, a_flag[:, :, i])
-#     c_dist[:, :, i] = np.multiply(c_dev, a_flag[:, :, i])
-#     n_dist[:, :, i] = np.multiply(n_dev, a_flag[:, :, i])
-#     D_tot[i] = np.sum(D_dist[:, :, i])
-#     c_tau[i] = np.sum(c_dist[:, :, i])
-#     n_tau[i] = np.sum(n_dist[:, :, i])
-print("Individual paths solved")
+# # Method 2: Weigh response by population/wealth quartiles CHECK IF CORRECT
+# D_dist = np.sum(D_ss, axis=0)
+# D_pct = np.percentile(D_dist, (25, 50, 75, 100))
+# D_pos = np.searchsorted(D_dist, D_pct)
 
+# # Asset quartiles
+# a_dist = np.sum(np.multiply(a_ss, D_ss), axis=0)
+# a_pct = np.percentile(a_dist, (25, 50, 75, 100))
+# a_pos = np.searchsorted(a_dist, a_pct)
 
-# =============================================================================
-# Plot
-# =============================================================================
+# c_first_tauc_q = np.zeros(len(D_pos))
+# for i in range(len(D_pos)):
+#     if i == 0:
+#         c_first_tauc_q[i] = np.sum(np.multiply(c_first_dev_tauc[:, a_pos[i]], D_ss[:, a_pos[i]]))
+#     else:
+#         c_first_tauc_q[i] = np.sum(np.multiply(c_first_dev_tauc[:, a_pos[i-1]+1:D_pos[i]], D_ss[:, a_pos[i-1]+1:D_pos[i]]))
+  
+# plt.plot(c_first_tauc_q)
+# plt.show()    
+  
+# Method 3: Weigh response by mass of agents (gives same results as method 1)
+a_flag, D_dist = np.zeros((nE, nA, len(nbin))), np.zeros((nE, nA, len(nbin)))
+c_dist_tauc, n_dist_tauc, c_dist_tau, n_dist_tau = (np.zeros((nE, nA, len(nbin))), np.zeros((nE, nA, len(nbin))), 
+                                                    np.zeros((nE, nA, len(nbin))), np.zeros((nE, nA, len(nbin))))
+D_tot, c_tauc1, n_tauc1, c_tau1, n_tau1, D_tot  = (np.zeros(len(nbin)), np.zeros(len(nbin)), np.zeros(len(nbin)),
+                                                    np.zeros(len(nbin)), np.zeros(len(nbin)), np.zeros(len(nbin)))
 
-plt.rcParams["figure.figsize"] = (16,7)
-fig, ax = plt.subplots(1, 2)
+for i in range(0, len(nbin)):  
+    a_flag[:, :, i] = np.where(a_bin == i+1, 1, 0) # returns 1 if true, 0 otherwise
+    D_dist[:, :, i] = np.multiply(D_ss, a_flag[:, :, i])
+    
+    c_dist_tauc[:, :, i] = np.multiply(c_first_dev_tauc, D_dist[:, :, i])
+    n_dist_tauc[:, :, i] = np.multiply(n_first_dev_tauc, D_dist[:, :, i])
+    c_tauc1[i] = np.sum(c_dist_tauc[:, :, i])
+    n_tauc1[i] = np.sum(n_dist_tauc[:, :, i])
+    
+    c_dist_tau[:, :, i] = np.multiply(c_first_dev_tau, D_dist[:, :, i])
+    n_dist_tau[:, :, i] = np.multiply(n_first_dev_tau, D_dist[:, :, i])
+    c_tau1[i] = np.sum(c_dist_tau[:, :, i])
+    n_tau1[i] = np.sum(n_dist_tau[:, :, i])
+    
+# Pool into bins
+c_first_bin_tauc = c_tauc1.reshape(-1, 100, order='F').sum(axis=0)
+n_first_bin_tauc = n_tauc1.reshape(-1, 100, order='F').sum(axis=0)
+c_first_bin_tau = c_tau1.reshape(-1, 100, order='F').sum(axis=0)
+n_first_bin_tau = n_tau1.reshape(-1, 100, order='F').sum(axis=0) 
+
+# Plot results
+plt.rcParams["figure.figsize"] = (18,7)
+fig, ax = plt.subplots(1,2)
+# fig.suptitle(r'Impact change in consumption and labor supply, consumption tax policy $\tau_c$ versus transfer policy $\tau$', size=16)
 
 ax[0].set_title(r'Consumption $c$')
-ax[0].plot(c_tauc[1:], label="Consumption tax policy")
-ax[0].plot(c_tau[1:],'-.', label="Transfer policy")
+ax[0].plot(c_first_bin_tauc * 100, label="Consumption tax policy")
+# ax[0].plot(c_first_bin_rstar[0:] * 100, label="Interest rate policy")
+ax[0].plot(c_first_bin_tau * 100,'-.', label="Transfer policy")
+# ax[0].plot(c_bin_tauc1[0:] * 100, label="Consumption tax policy")
+# ax[0].plot(c_bin_tau1[0:] * 100,'-.', label="Transfer policy")
+ax[0].legend(loc='upper right', frameon=False)
+ax[0].set_xlabel("Wealth percentile"), ax[0].set_ylabel("Percent deviation from steady state")
 
 ax[1].set_title(r'Labor supply $n$')
-ax[1].plot(n_tauc[1:])
-ax[1].plot(n_tau[1:],'-.')
-
-plt.legend()
+ax[1].plot(n_first_bin_tauc * 100, label="Consumption tax policy")
+# ax[1].plot(n_first_bin_rstar[0:] * 100, label="Interest rate policy")
+ax[1].plot(n_first_bin_tau * 100,'-.', label="Transfer policy")
+# ax[1].plot(n_bin_tauc1[0:] * 100, label="Consumption tax policy")
+# ax[1].plot(n_bin_tau1[0:] * 100,'-.', label="Transfer policy")
+ax[1].legend(loc='upper right', frameon=False)
+ax[1].set_xlabel("Wealth percentile"), ax[1].set_ylabel("Percent deviation from steady state")
 plt.show()
+
+
+# =============================================================================
+# Dynamic response by quantile
+# =============================================================================
+
+# Express as deviation from steady state
+c_all_dev_tauc = (c_all_tauc - c_ss[:, :, None]) / c_ss[:, :, None]
+n_all_dev_tauc = (n_all_tauc - n_ss[:, :, None]) / n_ss[:, :, None]
+c_all_dev_tau = (c_all_tau - c_ss[:, :, None]) / c_ss[:, :, None]
+n_all_dev_tau = (n_all_tau - n_ss[:, :, None]) / n_ss[:, :, None]
+
+# # Test
+# c_all_dev_tauc = (c_all_tauc - c_ss[:, :, None])
+# n_all_dev_tauc = (c_all_tauc - c_ss[:, :, None])
+# c_all_dev_tau = (c_all_tauc - c_ss[:, :, None])
+# n_all_dev_tau = (c_all_tauc - c_ss[:, :, None])
+
+# Weigh response by mass of agents
+c_allw_tauc, n_allw_tauc, c_allw_tau, n_allw_tau = (np.zeros((nA, T)), np.zeros((nA, T)), 
+                                                        np.zeros((nA, T)), np.zeros((nA, T)))
+for i in range(nA):
+    for t in range(T):
+        c_allw_tauc[i, t] = c_all_dev_tauc[:, i, t] @ D_ss[:, i, None]
+        n_allw_tauc[i, t] = n_all_dev_tauc[:, i, t] @ D_ss[:, i, None]
+        c_allw_tau[i, t] = c_all_dev_tau[:, i, t] @ D_ss[:, i, None]
+        n_allw_tau[i, t] = n_all_dev_tau[:, i, t] @ D_ss[:, i, None]
+     
+# Find quartile positions and pool responses into quartiles
+D_dist = np.sum(D_ss, axis=0)
+D_pct = np.percentile(D_dist, (25, 50, 75, 100))
+D_pos = np.searchsorted(D_dist, D_pct)
+
+c_all_tauc_q1 = c_allw_tauc[D_pos[0], :]
+c_all_tauc_q2 = c_allw_tauc[D_pos[0]+1:D_pos[1], :].sum(axis=0)
+c_all_tauc_q3 = c_allw_tauc[D_pos[1]+1:D_pos[2], :].sum(axis=0)
+c_all_tauc_q4 = c_allw_tauc[D_pos[2]+1:D_pos[3], :].sum(axis=0)
+
+c_all_tau_q1 = c_allw_tau[D_pos[0], :]
+c_all_tau_q2 = c_allw_tau[D_pos[0]+1:D_pos[1], :].sum(axis=0)
+c_all_tau_q3 = c_allw_tau[D_pos[1]+1:D_pos[2], :].sum(axis=0)
+c_all_tau_q4 = c_allw_tau[D_pos[2]+1:D_pos[3], :].sum(axis=0)
+
+# Pool into percentiles
+# c_all_bin_tauc = c_allw_tauc.reshape((5, 100, 300), order='F').sum(axis=0)
+# n_all_bin_tauc = n_allw_tauc.reshape((5, 100, 300), order='F').sum(axis=0)
+# c_all_bin_tau = c_allw_tau.reshape((5, 100, 300), order='F').sum(axis=0)
+# n_all_bin_tau = n_allw_tau.reshape((5, 100, 300), order='F').sum(axis=0)
+
+# Pool into quartiles PROBABLY WRONG
+c_all_bin_tauc = c_allw_tauc.reshape((125, 4, 300), order='F').sum(axis=0)
+n_all_bin_tauc = n_allw_tauc.reshape((125, 4, 300), order='F').sum(axis=0)
+c_all_bin_tau = c_allw_tau.reshape((125, 4, 300), order='F').sum(axis=0)
+n_all_bin_tau = n_allw_tau.reshape((125, 4, 300), order='F').sum(axis=0)     
+
+# Plot results
+plt.rcParams["figure.figsize"] = (18,7)
+fig, ax = plt.subplots(1,2)
+ax[0].set_title(r'Consumption response after consumption tax policy')
+ax[0].plot(c_all_tauc_q1[0:22] * 100, label="Quartile 1")
+ax[0].plot(c_all_tauc_q2[0:22] * 100, label="Quartile 2")
+ax[0].plot(c_all_tauc_q3[0:22] * 100, label="Quartile 3")
+ax[0].plot(c_all_tauc_q4[0:22] * 100, label="Quartile 4")
+# ax[0].plot(c_all_bin_tauc[4, 0:22] * 100, label="Quintile 5")
+ax[0].legend(loc='upper right', frameon=False)
+
+ax[1].set_title(r'Consumption response after transfer policy')
+ax[1].plot(c_all_tau_q1[0:22] * 100, label="Quartile 1")
+ax[1].plot(c_all_tau_q2[0:22] * 100, label="Quartile 2")
+ax[1].plot(c_all_tau_q3[0:22] * 100, label="Quartile 3")
+ax[1].plot(c_all_tau_q4[0:22] * 100, label="Quartile 4")
+ax[1].legend(loc='upper right', frameon=False)
+plt.show()
+
+
+fig, ax = plt.subplots(1,2)
+ax[0].set_title(r'Consumption response after consumption tax policy')
+ax[0].plot(c_all_bin_tauc[0, 0:22] * 100, label="Quartile 1")
+ax[0].plot(c_all_bin_tauc[1, 0:22] * 100, label="Quartile 2")
+ax[0].plot(c_all_bin_tauc[2, 0:22] * 100, label="Quartile 3")
+ax[0].plot(c_all_bin_tauc[3, 0:22] * 100, label="Quartile 4")
+# ax[0].plot(c_all_bin_tauc[4, 0:22] * 100, label="Quintile 4")
+ax[0].legend(loc='upper right', frameon=False)
+
+ax[1].set_title(r'Consumption response after transfer policy')
+ax[1].plot(c_all_bin_tau[0, 0:22] * 100, label="Quartile 1")
+ax[1].plot(c_all_bin_tau[1, 0:22] * 100, label="Quartile 2")
+ax[1].plot(c_all_bin_tau[2, 0:22] * 100, label="Quartile 3")
+ax[1].plot(c_all_bin_tau[3, 0:22] * 100, label="Quartile 4")
+# ax[1].plot(c_all_bin_tau[4, 0:22] * 100, label="Quintile 4")
+ax[1].legend(loc='upper right', frameon=False)
+plt.show()
+
+
 
 print("Time elapsed: %s seconds" % (round(time.time() - start_time, 0)))

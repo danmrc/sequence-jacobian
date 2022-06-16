@@ -86,11 +86,11 @@ def make_grid(rho_e, sd_e, nE, amin, amax, nA):
     a_grid = grids.agrid(amin=amin, amax=amax, n=nA)
     return e_grid, Pi, a_grid, pi_e
 
-def transfers(pi_e, Div, Transfer, e_grid):
+def transfers(pi_e, Div, Tau, e_grid):
     tax_rule, div_rule = np.ones(e_grid.size), e_grid #np.ones(e_grid.size)
     div = Div / np.sum(pi_e * div_rule) * div_rule
-    transfer =  Transfer / np.sum(pi_e * tax_rule) * tax_rule 
-    T = div + transfer
+    tau =  Tau / np.sum(pi_e * tax_rule) * tax_rule 
+    T = div + tau
     return T
 
 household_inp = household.add_hetinputs([make_grid, transfers])
@@ -120,10 +120,10 @@ def monetary(pi, rstar, phi_pi):
     return r, i
 
 @simple
-def fiscal(r, Transfer, B, C, L, tauc, taun, w):
-    govt_res = Transfer + (1 + r) * B(-1) - tauc * C - taun * w * L - B
-    Deficit = tauc * C + taun * w * L - Transfer # primary surplus
-    Trans = Transfer
+def fiscal(r, Tau, B, C, L, tauc, taun, w):
+    govt_res = Tau + (1 + r) * B(-1) - tauc * C - taun * w * L - B
+    Deficit = tauc * C + taun * w * L - Tau # primary surplus
+    Trans = Tau
     return govt_res, Deficit, Trans
 
 @simple
@@ -157,7 +157,7 @@ calibration = {'gamma': 1.0, 'nu': 2.0, 'rho_e': 0.966, 'sd_e': 0.92, 'nE': 8,
                'mu': 1.2, 'kappa': 0.1, 'rstar': 0.005, 'phi_pi': 0.0, 'B': 6.0, 
                'tauc': 0.1, 'taun': 0.036}
 
-unknowns_ss = {'beta': 0.986, 'phi': 0.8, 'Transfer': 0.05}
+unknowns_ss = {'beta': 0.986, 'phi': 0.8, 'Tau': 0.05}
 targets_ss = {'asset_mkt': 0, 'labor_mkt': 0, 'govt_res': 0}
 print("Computing steady state...")
 ss0 = hank_ss.solve_steady_state(calibration, unknowns_ss, targets_ss, solver="hybr")
@@ -173,14 +173,13 @@ hank = create_model(blocks, name="One-Asset HANK")
 ss = hank.steady_state(ss0)
 
 T = 300
-exogenous = ['rstar', 'Transfer', 'Z', 'tauc']
+exogenous = ['rstar', 'Tau', 'Z', 'tauc']
 unknowns = ['pi', 'w', 'Y', 'B']
 targets = ['nkpc_res', 'asset_mkt', 'labor_mkt', 'govt_res']
 
 print("Computing Jacobian...")
 G = hank.solve_jacobian(ss, unknowns, targets, exogenous, T=T)
 print("Jacobian solved")
-
 
 
 # =============================================================================
@@ -196,6 +195,15 @@ tauc = ss['tauc']
 taun = ss['taun']
 
 # Steady-state variables
+A_ss = ss['A']
+C_ss = ss['C']
+Div_ss = ss['Div']
+N_ss = ss['N']
+r_ss = ss['r']
+Tau_ss = ss['Tau']
+w_ss = ss['w']
+Y_ss = ss['Y']
+
 e_grid = ss.internals['household']['e_grid']
 a_grid = ss.internals['household']['a_grid']
 D_ss = ss.internals['household']['Dbeg']
@@ -204,13 +212,7 @@ Pi = ss.internals['household']['Pi']
 a_ss = ss.internals['household']['a']
 c_ss = ss.internals['household']['c']
 n_ss = ss.internals['household']['n']
-N_ss = ss['N']
-r_ss = ss['r']
-Div_ss = ss['Div']
-Transfer_ss = ss['Transfer']
-w_ss = ss['w']
-T_ss = transfers(pi_e, Div_ss, Transfer_ss, e_grid)
-
+T_ss = transfers(pi_e, Div_ss, Tau_ss, e_grid)
 
 # Share of hand-to-mouth
 D_dist = np.sum(D_ss, axis=0)
@@ -241,48 +243,66 @@ n_tot = np.sum(np.multiply(n_ss, D_ss))
 n_dist = np.sum(np.multiply(n_ss, D_ss), axis=0)
 n_bin = n_dist.reshape(-1, 100, order='F').sum(axis=0)
 
-# Wealth Lorenz curve CHECK 
-from numpy import trapz
-a_lorenz = trapz(np.cumsum(a_dist / a_tot), dx=1/nA) # area below Lorenz curve
-a_gini = (0.5 - a_lorenz) / 0.5
+# Dividend distribution
+d_tot = np.sum(np.multiply(T_ss[:, None] - Tau_ss, D_ss))
+d_dist = np.sum(np.multiply(T_ss[:, None] - Tau_ss, D_ss), axis=0)
+d_bin = d_dist.reshape(-1, 100, order='F').sum(axis=0)
+
+# Transfer distribution
+tau_tot = np.sum(np.multiply(Tau_ss, D_ss))
+tau_dist = np.sum(np.multiply(Tau_ss, D_ss), axis=0)
+tau_bin = tau_dist.reshape(-1, 100, order='F').sum(axis=0)
+
+# Wealth Lorenz curve
+D_grid = np.append(np.zeros(1), np.cumsum(D_dist))
+a_lorenz = np.append(np.zeros(1), np.cumsum(a_dist / a_tot))
+a_lorenz_area = np.trapz(a_lorenz, x=D_grid) # area below Lorenz curve
+a_gini = (0.5 - a_lorenz_area) / 0.5
 print("Wealth Gini =", np.round(a_gini, 3))
 
-# Income Lorenz curve CHECK 
-y_lorenz = trapz(np.cumsum(y_dist / y_tot), dx=1/nA) # area below Lorenz curve
-y_gini = (0.5 - y_lorenz) / 0.5
+# Income Lorenz curve
+y_lorenz = np.append(np.zeros(1), np.cumsum(y_dist / y_tot))
+y_lorenz_area = np.trapz(y_lorenz, x=D_grid) # area below Lorenz curve
+y_gini = (0.5 - y_lorenz_area) / 0.5
 print("Income Gini =", np.round(y_gini, 3))
 
 # Plot distributions
+plt.rcParams["figure.figsize"] = (16,7)
 fig, ax = plt.subplots(2, 4)
 
-ax[0, 0].set_title(r'Skill distribution $e$')
+ax[0, 0].set_title(r'Skill $e$ distribution')
 ax[0, 0].plot(e_grid, pi_e)
 ax[0, 0].fill_between(e_grid, pi_e)
 
-ax[0, 1].set_title(r'Wealth distribution $a$')
+ax[0, 1].set_title(r'Wealth $a$ distribution')
 ax[0, 1].plot(a_bin / a_tot)
 ax[0, 1].fill_between(range(100), a_bin / a_tot)
 
-ax[0, 2].set_title(r'Income distribution $y$')
+ax[0, 2].set_title(r'Income $y$ and consumption $c$ distribution')
 ax[0, 2].plot(y_bin / y_tot)
 ax[0, 2].fill_between(range(100), y_bin / y_tot)
+ax[0, 2].plot(c_bin / c_tot)
 
-ax[0, 3].set_title(r'Consumption distribution $c$')
-ax[0, 3].plot(c_bin / c_tot)
-ax[0, 3].fill_between(range(100), c_bin / c_tot)
+ax[0, 3].set_title(r'Labor supply $n$ distribution')
+ax[0, 3].plot(n_bin / n_tot)
+ax[0, 3].fill_between(range(100), n_bin / n_tot)
 
-ax[1, 0].set_title(r'Labor supply distribution $n$')
-ax[1, 0].plot(n_bin / n_tot)
-ax[1, 0].fill_between(range(100), n_bin / n_tot)
+ax[1, 0].set_title(r'Transfer $\tau$ distribution')
+ax[1, 0].plot(tau_bin / tau_tot)
+ax[1, 0].fill_between(range(100), tau_bin / tau_tot)
 
 ax[1, 1].set_title(r'Wealth Lorenz curve')
 # ax[1, 1].plot(np.cumsum(mass[asset_pos]), np.cumsum(asset_mass / total_wealth)) 
-ax[1, 1].plot(np.cumsum(D_dist), np.cumsum(a_dist / a_tot)) 
+ax[1, 1].plot(D_grid, a_lorenz)
 ax[1, 1].plot([0, 1], [0, 1], '-')
 
 ax[1, 2].set_title(r'Income Lorenz curve')
-ax[1, 2].plot(np.cumsum(D_dist), np.cumsum(y_dist / y_tot)) 
+ax[1, 2].plot(D_grid, y_lorenz) 
 ax[1, 2].plot([0, 1], [0, 1], '-')
+
+ax[1, 3].set_title(r'Dividend $d$ distribution')
+ax[1, 3].plot(d_bin / d_tot)
+ax[1, 3].fill_between(range(100), d_bin / d_tot)
 plt.show()
 
 # Show steady state
@@ -293,7 +313,7 @@ ss_param = [['Discount factor', ss['beta'], 'Intertemporal elasticity', ss['gamm
         ['Consumption tax rate', ss['tauc'], 'Labor tax rate', ss['taun']]]
 
 ss_var = [['Output', ss['Y'], 'Government debt', ss['A']],
-        ['Consumption', ss['C'], 'Transfers', ss['Transfer']],
+        ['Consumption', ss['C'], 'Transfers', ss['Tau']],
         ['Hours', ss['N'], 'Dividends', ss['Div']], 
         ['Wage', ss['w'], 'Marginal cost', ss['w'] / ss['Z']],
         ['Inflation', ss['pi'], 'Consumption tax revenue', ss['tauc'] * ss['C']],
@@ -357,20 +377,19 @@ drstar = -0.02 * rhos ** (np.arange(T)[:, np.newaxis])
 dtstar = 0.03 * rhos ** (np.arange(T)[:, np.newaxis])
 dtauc = - 0.03 * rhos ** (np.arange(T)[:, np.newaxis])
 
-dY = [G['Y']['rstar'] @ drstar, G['Y']['tauc'] @ dtauc, G['Y']['Transfer'] @ dtstar]
-dC = [G['C']['rstar'] @ drstar, G['C']['tauc'] @ dtauc, G['C']['Transfer'] @ dtstar]
-dN = [G['N']['rstar'] @ drstar, G['N']['tauc'] @ dtauc, G['N']['Transfer'] @ dtstar]
-dB = [G['A']['rstar'] @ drstar, G['A']['tauc'] @ dtauc, G['A']['Transfer'] @ dtstar]
-dw = [G['w']['rstar'] @ drstar, G['w']['tauc'] @ dtauc, G['w']['Transfer'] @ dtstar]
-dP = [G['pi']['rstar'] @ drstar, G['pi']['tauc'] @ dtauc, G['pi']['Transfer'] @ dtstar]
-dp = [G['cpi']['rstar'] @ drstar, G['cpi']['tauc'] @ dtauc, G['cpi']['Transfer'] @ dtstar]
-dr = [G['r']['rstar'] @ drstar, G['r']['tauc'] @ dtauc, G['r']['Transfer'] @ dtstar]
-dD = [G['Deficit']['rstar'] @ drstar, G['Deficit']['tauc'] @ dtauc, G['Deficit']['Transfer'] @ dtstar]
-dd = [G['Div']['rstar'] @ drstar, G['Div']['tauc'] @ dtauc, G['Div']['Transfer'] @ dtstar]
-dT = [np.zeros(T), np.zeros(T), G['Trans']['Transfer'] @ dtstar]
+dY = [G['Y']['rstar'] @ drstar, G['Y']['tauc'] @ dtauc, G['Y']['Tau'] @ dtstar]
+dC = [G['C']['rstar'] @ drstar, G['C']['tauc'] @ dtauc, G['C']['Tau'] @ dtstar]
+dN = [G['N']['rstar'] @ drstar, G['N']['tauc'] @ dtauc, G['N']['Tau'] @ dtstar]
+dB = [G['A']['rstar'] @ drstar, G['A']['tauc'] @ dtauc, G['A']['Tau'] @ dtstar]
+dw = [G['w']['rstar'] @ drstar, G['w']['tauc'] @ dtauc, G['w']['Tau'] @ dtstar]
+dP = [G['pi']['rstar'] @ drstar, G['pi']['tauc'] @ dtauc, G['pi']['Tau'] @ dtstar]
+dp = [G['cpi']['rstar'] @ drstar, G['cpi']['tauc'] @ dtauc, G['cpi']['Tau'] @ dtstar]
+dr = [G['r']['rstar'] @ drstar, G['r']['tauc'] @ dtauc, G['r']['Tau'] @ dtstar]
+dD = [G['Deficit']['rstar'] @ drstar, G['Deficit']['tauc'] @ dtauc, G['Deficit']['Tau'] @ dtstar]
+dd = [G['Div']['rstar'] @ drstar, G['Div']['tauc'] @ dtauc, G['Div']['Tau'] @ dtstar]
+dT = [np.zeros(T), np.zeros(T), G['Trans']['Tau'] @ dtstar]
 di = [G['i']['rstar'] @ drstar, np.zeros(T), np.zeros(T)]
 
-plt.rcParams["figure.figsize"] = (16,7)
 fig, ax = plt.subplots(2, 4)
 fig.suptitle('Consumption tax cut versus transfer increase', size=16)
 
@@ -470,17 +489,17 @@ intshock = (1 / (C-np.log(discount))** 2 * np.exp(C*E-D) *
             (discount**T * np.exp(-60*C) * (np.log(discount) * (A+B*(E-T)) - A*C+B*(-C)*(E-T)+B) 
              - np.log(discount) * (A+B*E) + A*C + B*C*E - B))
 
-dY = [G['Y']['tauc'] @ (-shock), G['Y']['Transfer'] @ shock]
-dC = [G['C']['tauc'] @ (-shock), G['C']['Transfer'] @ shock]
-dN = [G['N']['tauc'] @ (-shock), G['N']['Transfer'] @ shock]
-dB = [G['A']['tauc'] @ (-shock), G['A']['Transfer'] @ shock]
-dw = [G['w']['tauc'] @ (-shock), G['w']['Transfer'] @ shock]
-dP = [G['pi']['tauc'] @ (-shock), G['pi']['Transfer'] @ shock]
-dp = [G['cpi']['tauc'] @ (-shock), G['cpi']['Transfer'] @ shock]
-dr = [G['r']['tauc'] @ (-shock), G['r']['Transfer'] @ shock]
-dD = [G['Deficit']['tauc'] @ (-shock), G['Deficit']['Transfer'] @ shock]
-dd = [G['Div']['tauc'] @ (-shock), G['Div']['Transfer'] @ shock]
-dT = [np.zeros(T), G['Trans']['Transfer'] @ shock]
+dY = [G['Y']['tauc'] @ (-shock), G['Y']['Tau'] @ shock]
+dC = [G['C']['tauc'] @ (-shock), G['C']['Tau'] @ shock]
+dN = [G['N']['tauc'] @ (-shock), G['N']['Tau'] @ shock]
+dB = [G['A']['tauc'] @ (-shock), G['A']['Tau'] @ shock]
+dw = [G['w']['tauc'] @ (-shock), G['w']['Tau'] @ shock]
+dP = [G['pi']['tauc'] @ (-shock), G['pi']['Tau'] @ shock]
+dp = [G['cpi']['tauc'] @ (-shock), G['cpi']['Tau'] @ shock]
+dr = [G['r']['tauc'] @ (-shock), G['r']['Tau'] @ shock]
+dD = [G['Deficit']['tauc'] @ (-shock), G['Deficit']['Tau'] @ shock]
+dd = [G['Div']['tauc'] @ (-shock), G['Div']['Tau'] @ shock]
+dT = [np.zeros(T), G['Trans']['Tau'] @ shock]
 di = [np.zeros(T), np.zeros(T)]
 
 plt.rcParams["figure.figsize"] = (16,7)

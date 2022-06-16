@@ -4,6 +4,7 @@
 # Code used by both policies
 # =============================================================================
 
+print("STICKY WAGES")
 import numpy as np
 import matplotlib.pyplot as plt
 from sequence_jacobian import het, simple, create_model             # functions
@@ -148,10 +149,10 @@ def iterate_household(foo, V_prime_start, Pi, a_grid, w, N, taun, pi_e, e_grid, 
 
 
 # =============================================================================
-# Transfer policy
+# First model: transfer policy
 # =============================================================================
 
-print("First model")
+print("FIRST MODEL: TRANSFER POLICY")
 
 # Steady state
 blocks_ss = [hh_inp, firm, monetary, fiscal, mkt_clearing, nkpc_ss, union_ss]
@@ -164,7 +165,7 @@ unknowns_ss = {'beta': 0.986, 'Transfer': -0.03}
 targets_ss = {'asset_mkt': 0, 'govt_res': 0}
 print("Computing steady state...")
 ss0 = hank_ss.solve_steady_state(calibration, unknowns_ss, targets_ss, backward_tol=1E-22, solver="hybr")
-print("Steady state done")
+print("Done")
 
 # Dynamic model
 blocks = [hh_inp, firm, monetary, fiscal, mkt_clearing, nkpc,wage,union]
@@ -176,7 +177,7 @@ unknowns = ['pi', 'w', 'Y', 'B']
 targets = ['nkpc_res', 'asset_mkt', 'wnkpc', 'govt_res']
 print("Computing Jacobian...")
 G = hank.solve_jacobian(ss, unknowns, targets, exogenous, T=T)
-print("Jacobian done")
+print("Done")
 
 # Shock, parameters, steady-state variables, and aggregate transition dynamics
 shock = np.zeros(T)
@@ -185,77 +186,61 @@ A, B, C, D, E = 1, 0.5, 0.19499, 5, 3
 for x in range(T):
     shock[x] = discount ** x * (A - B * (x - E)) * np.exp(-C * (x - E) - D)
     
-z_grid = ss0.internals['household']['z_grid']
-e_grid = ss0.internals['household']['e_grid']
-a_grid = ss0.internals['household']['a_grid']
-pi_e =  ss0.internals['household']['pi_e']
-Pi = ss0.internals['household']['Pi']
+z_grid = ss.internals['household']['z_grid']
+e_grid = ss.internals['household']['e_grid']
+a_grid = ss.internals['household']['a_grid']
+D_ss = ss.internals['household']['Dbeg']
+pi_e =  ss.internals['household']['pi_e']
+Pi = ss.internals['household']['Pi']
 D = ss.internals['household']['Dbeg']
 
-nu = ss0['nu']
-beta = ss0['beta']
-gamma = ss0['gamma']
-tauc = ss0['tauc']
-taun = ss0['taun']
-nE = ss0['nE']
-nA = ss0['nA']
+nu = ss['nu']
+beta = ss['beta']
+gamma = ss['gamma']
+tauc = ss['tauc']
+taun = ss['taun']
+nE = ss['nE']
+nA = ss['nA']
 
-a_ss = ss0.internals['household']['a']
-c_ss = ss0.internals['household']['c']
-r_ss = ss0['r']
-Transfer_ss = ss0['Transfer']
-Div_ss = ss0['Div']
+a_ss = ss.internals['household']['a']
+c_ss = ss.internals['household']['c']
+r_ss = ss['r']
+Transfer_ss = ss['Transfer']
+Div_ss = ss['Div']
 T_ss = transfers(pi_e,Div_ss,Transfer_ss,e_grid)
-w_ss = ss0['w']
-N_ss = ss0['N']
+w_ss = ss['w']
+N_ss = ss['N']
 
-dtstar = shock
+# Aggregate transition dynamics
+# dtau = shock
+rhos = 0.9
+dtau = 0.03 * rhos ** (np.arange(T)[:, np.newaxis])
 
-path_w = w_ss + G['w']['Transfer'] @ dtstar
-path_r = r_ss + G['r']['Transfer'] @ dtstar
-path_div = Div_ss + G['Div']['Transfer'] @ dtstar
-path_n = N_ss + G['N']['Transfer'] @ dtstar
-path_transfer = Transfer_ss + dtstar
+path_w = w_ss + G['w']['Transfer'] @ dtau
+path_r = r_ss + G['r']['Transfer'] @ dtau
+path_div = Div_ss + G['Div']['Transfer'] @ dtau
+path_n = N_ss + G['N']['Transfer'] @ dtau
+path_transfer = Transfer_ss + dtau
 
 # Initialize individual consumption paths
 V_prime_p = (1 + r_ss) / (1 + tauc) * c_ss ** (-gamma)
-all_c = np.zeros((nE, nA, T))
+c_all_tau, n_all_tau = np.zeros((nE, nA, T)), np.zeros((nE, nA, T))
 
 # Compute all individual consumption paths
+print("Computing individual paths...")
 for t in range(T-1, -1, -1):
-    # print(t)
-    V_prime_p, _, c, _ = iterate_household(household_d, V_prime_p, Pi, a_grid, path_w[t], path_n[t], taun, pi_e, 
+    V_prime_p, _, c, n = iterate_household(household_d, V_prime_p, Pi, a_grid, path_w[t], path_n[t], taun, pi_e, 
                                            e_grid, path_r[t], path_div[t], path_transfer[t], beta, gamma, tauc)
-    all_c[:, :, t] = c # absolute consumption
+    c_all_tau[:, :, t] = c  
+    n_all_tau[:, :, t] = n
+print("Done")
     
-# Select only the first period
-c_first = all_c[:, :, 0]
-c_dev = (c_first - c_ss) / c_ss # percent deviation from steady state
-
-# Sort assets into bins
-nbin = np.zeros(100)
-nbin[1], nbin[2] = 0.5, 1
-nbin[3:] = np.arange(1.5, 150, 148.5 / 97)
-nbin = np.arange(0, 150, 1.5)
-a_bin = np.digitize(a_ss, nbin)
-
-# Weight each consumption response by mass of agents with given asset value
-a_dist = D_dist = c_dist =  np.zeros((nE, nA, len(nbin)))
-c_pct = D_total = np.zeros(len(nbin))
-
-for i in range(1, len(nbin)):  
-    a_dist[:, :, i] = np.where(a_bin == i, 1, 0) # returns 1 if true, 0 otherwise
-    D_dist[:, :, i] = np.multiply(D, a_dist[:, :, i])
-    # D_total[i] = np.sum(D_dist[:, :, i])
-    c_dist[:, :, i] = np.multiply(c_dev, a_dist[:, :, i])
-    c_pct[i] = np.sum(c_dist[:, :, i]) #* np.sum(D_dist[:, :, i] )
-
 
 # =============================================================================
-# Interest rate policy 
+# Second model: Interest rate policy 
 # =============================================================================
 
-print("Second model")
+print("SECOND MODEL: INTEREST RATE POLICY")
 
 # Steady state 
 blocks_ss = [hh_inp, firm, monetary, fiscal, mkt_clearing, nkpc_ss, union_ss]
@@ -268,7 +253,7 @@ unknowns_ss = {'beta': 0.986, 'Transfer': -0.03}
 targets_ss = {'asset_mkt': 0, 'govt_res': 0}
 print("Computing steady state...")
 ss0r = hank_ss.solve_steady_state(calibration, unknowns_ss, targets_ss, backward_tol = 1E-22, solver="hybr")
-print("Steady state done")
+print("Done")
 
 # Dynamic model
 blocks = [hh_inp, firm, monetary, fiscal, mkt_clearing, nkpc,wage,union]
@@ -280,17 +265,18 @@ unknowns = ['pi', 'w', 'Y', 'Transfer']
 targets = ['nkpc_res', 'asset_mkt', 'wnkpc', 'govt_res']
 print("Computing Jacobian...")
 G = hank.solve_jacobian(ss, unknowns, targets, exogenous, T=T)
-print("Jacobian done")
+print("Done")
 
 # Shock, parameters, steady-state variables, and aggregate transition dynamics
 rhos = 0.9
-drstar = -0.001 * rhos ** (np.arange(T)[:, np.newaxis])
+drstar = -0.005 * rhos ** (np.arange(T)[:, np.newaxis])
 
-z_grid = ss0r.internals['household']['z_grid']
-e_grid = ss0r.internals['household']['e_grid']
-a_grid = ss0r.internals['household']['a_grid']
-pi_e =  ss0r.internals['household']['pi_e']
-Pi = ss0r.internals['household']['Pi']
+z_grid_r = ss0r.internals['household']['z_grid']
+e_grid_r = ss0r.internals['household']['e_grid']
+a_grid_r = ss0r.internals['household']['a_grid']
+D_ss_r = ss.internals['household']['Dbeg']
+pi_e_r =  ss0r.internals['household']['pi_e']
+Pi_r = ss0r.internals['household']['Pi']
 
 nu = ss0r['nu']
 beta = ss0r['beta']
@@ -300,64 +286,58 @@ taun = ss0r['taun']
 nE = ss0r['nE']
 nA = ss0r['nA']
 
-c_ss = ss0r.internals['household']['c']
-r_ss = ss0r['r']
-Transfer_ss = ss0r['Transfer']
-Div_ss = ss0r['Div']
-T_ss = transfers(pi_e,Div_ss,Transfer_ss,e_grid)
-w_ss = ss0r['w']
-N_ss = ss0r['N']
+c_ss_r = ss0r.internals['household']['c']
+r_ss_r = ss0r['r']
+Transfer_ss_r = ss0r['Transfer']
+Div_ss_r = ss0r['Div']
+T_ss_r = transfers(pi_e,Div_ss,Transfer_ss,e_grid)
+w_ss_r = ss0r['w']
+N_ss_r = ss0r['N']
 
-path_w = w_ss + G['w']['rstar'] @ drstar
-path_r = r_ss + G['r']['rstar'] @ drstar
-path_div = Div_ss + G['Div']['rstar'] @ drstar
-path_n = N_ss + G['N']['rstar'] @ drstar
-path_transfer = Transfer_ss + G['Transfer']['rstar'] @ drstar
-
-# plt.plot(path_w)
-# plt.plot(path_r)
-# plt.plot(path_n)
-# plt.plot(path_transfer)
-# plt.show()
+path_w = w_ss_r + G['w']['rstar'] @ drstar
+path_r = r_ss_r + G['r']['rstar'] @ drstar
+path_div = Div_ss_r + G['Div']['rstar'] @ drstar
+path_n = N_ss_r + G['N']['rstar'] @ drstar
+path_transfer = Transfer_ss_r + G['Transfer']['rstar'] @ drstar
 
 # Initialize individual consumption paths
 V_prime_p = (1 + r_ss) / (1 + tauc) * c_ss ** (-gamma)
-all_c = np.zeros((nE, nA, T))
+c_all_rstar = np.zeros((nE, nA, T))
 
 # Compute all individual consumption paths
+print("Computing individual paths...")
 for t in range(T-1, -1, -1):
     V_prime_p, _, c, _ = iterate_household(household_d, V_prime_p, Pi, a_grid, path_w[t], path_n[t], taun, pi_e, 
-                                           e_grid, path_r[t], path_div[t], path_transfer[t], beta, gamma, tauc)
-    all_c[:, :, t] = c # absolute consumption
+                                           e_grid_r, path_r[t], path_div[t], path_transfer[t], beta, gamma, tauc)
+    c_all_rstar[:, :, t] = c
+print("Done")
     
-# Select only the first period
-c_first = all_c[:, :, 0]
-c_dev = (c_first - c_ss) / c_ss # percent deviation from steady state
 
-# Sort assets into bins
-a_bin = np.digitize(a_ss, nbin)
+# =============================================================================
+# Impact response by wealth percentile
+# =============================================================================
 
-# Weight each consumption response by mass of agents with given asset value
-a_dist = D_dist = c_dist =  np.zeros((nE, nA, len(nbin)))
-c_pct_R = D_total = np.zeros(len(nbin))
+# Select first period only and express as deviation from steady state
+c_first_dev_tau = (c_all_tau[:, :, 0] - c_ss) / c_ss
+c_first_dev_rstar = (c_all_rstar[:, :, 0] - c_ss_r) / c_ss_r
 
-for i in range(1, len(nbin)):  
-    a_dist[:, :, i] = np.where(a_bin == i, 1, 0) # returns 1 if true, 0 otherwise
-    D_dist[:, :, i] = np.multiply(D, a_dist[:, :, i])
-    # D_total[i] = np.sum(D_dist[:, :, i])
-    c_dist[:, :, i] = np.multiply(c_dev, a_dist[:, :, i])
-    c_pct_R[i] = np.sum(c_dist[:, :, i]) #* np.sum(D_dist[:, :, i] )
+# Weigh response by mass of agents
+c_first_tau, c_first_rstar = np.zeros(nA), np.zeros(nA)
+for i in range(nA):
+    c_first_tau[i] = c_first_dev_tau[:, i] @ D_ss[:, i]
+    c_first_rstar[i] = c_first_dev_rstar[:, i] @ D_ss_r[:, i]
+       
+# Pool into percentile bins
+c_first_bin_tau = c_first_tau.reshape(-1, 100, order='F').sum(axis=0)
+c_first_bin_rstar = c_first_rstar.reshape(-1, 100, order='F').sum(axis=0)
 
-plt.plot(c_pct[1:], label = "Transfer policy")
-plt.plot(c_pct_R[1:], label = "Interest-rate policy")
-plt.legend()
+# Plot results
+plt.rcParams["figure.figsize"] = (18,7)
+plt.title(r'Consumption $c$')
+plt.plot(c_first_bin_tau * 100, label="Transfer policy")
+plt.plot(c_first_bin_rstar * 100,'-.', label="Interest rate policy")
+plt.legend(loc='upper right', frameon=False)
+plt.xlabel("Wealth percentile"), plt.ylabel("Percent deviation from steady state")
 plt.show()
 
 
-
-# wealth_perc = grids.agrid(amin = 0, amax=1, n=nA)
-
-# plt.plot(wealth_perc,c_asset_dist_t, label = "Transfer shock")
-# plt.plot(wealth_perc,c_asset_dist, label = "Interest-rate shock")
-# plt.legend()
-# plt.show()
