@@ -1,10 +1,12 @@
-"""Distributional responses to shocks in HANK"""
+"""Distributional responses to shocks in sticky-wage HANK"""
 
 # =============================================================================
 # Code used by both policies
 # =============================================================================
 
 print("STICKY WAGES")
+import time
+start_time = time.time()
 import numpy as np
 import matplotlib.pyplot as plt
 from sequence_jacobian import het, simple, create_model             # functions
@@ -13,7 +15,7 @@ from sequence_jacobian import interpolate, grids, misc, estimation  # modules
 def household_guess(a_grid, r, z_grid, gamma, T, tauc):
     new_z = np.ones((z_grid.shape[0],1))
     wel = (1 + r) * a_grid[np.newaxis,:] + new_z + T[:,np.newaxis]
-    V_prime = (1 + r) * (wel * 0.1) ** (-gamma)
+    V_prime = (1 + r) / (1 + tauc) * (wel * 0.1) ** (-gamma)
     return V_prime
 
 @het(exogenous='Pi', policy ='a', backward='V_prime', backward_init=household_guess)
@@ -44,11 +46,11 @@ def make_grid(rho_e, sd_e, nE, amin, amax, nA):
     a_grid = grids.agrid(amin=amin, amax=amax, n=nA)
     return e_grid, Pi, a_grid, pi_e
 
-def transfers(pi_e, Div, Transfer, e_grid):
-    tax_rule, div_rule = np.ones(e_grid.size), e_grid #np.ones(e_grid.size)
+def transfers(pi_e, Div, Tau, e_grid):
+    tau_rule, div_rule = np.ones(e_grid.size), e_grid #np.ones(e_grid.size)
     div = Div / np.sum(pi_e * div_rule) * div_rule
-    transfer =  (Transfer) / np.sum(pi_e * tax_rule) * tax_rule 
-    T = div + transfer
+    tau =  Tau / np.sum(pi_e * tau_rule) * tau_rule 
+    T = div + tau
     return T
 
 hh_inp = household.add_hetinputs([make_grid,transfers,income])
@@ -66,11 +68,17 @@ def monetary(pi, rstar, phi_pi):
     return r, i
 
 @simple
-def fiscal(r, Transfer, B, C, N, tauc, taun, w):
-    govt_res = Transfer + (1 + r) * B(-1) - tauc * C - taun * w * N - B
-    Deficit = Transfer - tauc * C - taun * w * N # primary deficit
-    Trans = Transfer
+def fiscal(r, Tau, B, C, N, tauc, taun, w):
+    govt_res = Tau + (1 + r) * B(-1) - tauc * C - taun * w * N - B
+    Deficit = Tau - tauc * C - taun * w * N # primary deficit
+    Trans = Tau
     return govt_res, Deficit, Trans
+
+@simple
+def fiscal2(r, B, N, taun, w):
+    #Tau = B - (1 + r) * B(-1) # new rule with variable debt
+    Tau = taun * w * N + B - (1 + r) * B(-1) # new rule with variable debt and taxes
+    return Tau
 
 @simple
 def mkt_clearing(A, C, Y, B, pi, mu, kappa):
@@ -130,12 +138,12 @@ def household_d(V_prime_p, a_grid, z_grid, e_grid, r, T, beta, gamma, tauc):
     return V_prime, a, c, uce
 
 def iterate_household(foo, V_prime_start, Pi, a_grid, w, N, taun, pi_e, e_grid, r, 
-                      Div, Transfer, beta, gamma, tauc, maxit=1000, tol=1E-8):
+                      Div, Tau, beta, gamma, tauc, maxit=1000, tol=1E-8):
     ite = 0
     err = 1
     V_prime_p = Pi @ V_prime_start # Pi is the markov chain transition matrix
     V_prime_old = V_prime_start # Initialize, V_prime_start will be set to ss V_prime_p
-    T = transfers(pi_e, Div, Transfer, e_grid)
+    T = transfers(pi_e, Div, Tau, e_grid)
     z_grid = income(e_grid, w, N, taun)
     
     while ite < maxit and err > tol:
@@ -161,18 +169,18 @@ calibration = {'gamma': 1.0, 'nu': 2.0, 'rho_e': 0.966, 'sd_e': 0.5, 'nE': 7,
                'amin': 0, 'amax': 150, 'nA': 500, 'Y': 1.0, 'Z': 1.0, 'pi': 0.0,
                'mu': 1.2, 'kappa': 0.1, 'rstar': 0.005, 'phi_pi': 0.0, 'B': 6.0,
                'kappaw': 0.05, 'muw': 1.2, 'N': 1.0, 'tauc': 0.1, 'taun': 0.036}
-unknowns_ss = {'beta': 0.986, 'Transfer': -0.03}
+unknowns_ss = {'beta': 0.986, 'Tau': -0.03}
 targets_ss = {'asset_mkt': 0, 'govt_res': 0}
 print("Computing steady state...")
 ss0 = hank_ss.solve_steady_state(calibration, unknowns_ss, targets_ss, backward_tol=1E-22, solver="hybr")
 print("Done")
 
 # Dynamic model
-blocks = [hh_inp, firm, monetary, fiscal, mkt_clearing, nkpc,wage,union]
+blocks = [hh_inp, firm, monetary, fiscal, mkt_clearing, nkpc, wage,union]
 hank = create_model(blocks, name="One-Asset HANK")
 ss = hank.steady_state(ss0)
 T = 300
-exogenous = ['rstar','Transfer', 'Z', 'tauc']
+exogenous = ['rstar','Tau', 'Z', 'tauc']
 unknowns = ['pi', 'w', 'Y', 'B']
 targets = ['nkpc_res', 'asset_mkt', 'wnkpc', 'govt_res']
 print("Computing Jacobian...")
@@ -205,9 +213,9 @@ nA = ss['nA']
 a_ss = ss.internals['household']['a']
 c_ss = ss.internals['household']['c']
 r_ss = ss['r']
-Transfer_ss = ss['Transfer']
+Tau_ss = ss['Tau']
 Div_ss = ss['Div']
-T_ss = transfers(pi_e,Div_ss,Transfer_ss,e_grid)
+T_ss = transfers(pi_e,Div_ss,Tau_ss,e_grid)
 w_ss = ss['w']
 N_ss = ss['N']
 
@@ -216,11 +224,11 @@ N_ss = ss['N']
 rhos = 0.9
 dtau = 0.03 * rhos ** (np.arange(T)[:, np.newaxis])
 
-path_w = w_ss + G['w']['Transfer'] @ dtau
-path_r = r_ss + G['r']['Transfer'] @ dtau
-path_div = Div_ss + G['Div']['Transfer'] @ dtau
-path_n = N_ss + G['N']['Transfer'] @ dtau
-path_transfer = Transfer_ss + dtau
+path_w = w_ss + G['w']['Tau'] @ dtau
+path_r = r_ss + G['r']['Tau'] @ dtau
+path_div = Div_ss + G['Div']['Tau'] @ dtau
+path_n = N_ss + G['N']['Tau'] @ dtau
+path_transfer = Tau_ss + dtau
 
 # Initialize individual consumption paths
 V_prime_p = (1 + r_ss) / (1 + tauc) * c_ss ** (-gamma)
@@ -249,7 +257,7 @@ calibration = {'gamma': 1.0, 'nu': 2.0, 'rho_e': 0.966, 'sd_e': 0.5, 'nE': 7,
                'amin': 0, 'amax': 150, 'nA': 500, 'Y': 1.0, 'Z': 1.0, 'pi': 0.0,
                'mu': 1.2, 'kappa': 0.1, 'rstar': 0.005, 'phi_pi': 1.5, 'B': 6.0,
                'kappaw': 0.05, 'muw': 1.2, 'N': 1.0, 'tauc': 0.1, 'taun': 0.036}
-unknowns_ss = {'beta': 0.986, 'Transfer': -0.03}
+unknowns_ss = {'beta': 0.986, 'Tau': -0.03}
 targets_ss = {'asset_mkt': 0, 'govt_res': 0}
 print("Computing steady state...")
 ss0r = hank_ss.solve_steady_state(calibration, unknowns_ss, targets_ss, backward_tol = 1E-22, solver="hybr")
@@ -261,7 +269,7 @@ hank = create_model(blocks, name = "One-Asset HANK")
 ss = hank.steady_state(ss0r)
 T = 300
 exogenous = ['rstar', 'Z']
-unknowns = ['pi', 'w', 'Y', 'Transfer']
+unknowns = ['pi', 'w', 'Y', 'Tau']
 targets = ['nkpc_res', 'asset_mkt', 'wnkpc', 'govt_res']
 print("Computing Jacobian...")
 G = hank.solve_jacobian(ss, unknowns, targets, exogenous, T=T)
@@ -288,9 +296,9 @@ nA = ss0r['nA']
 
 c_ss_r = ss0r.internals['household']['c']
 r_ss_r = ss0r['r']
-Transfer_ss_r = ss0r['Transfer']
+Tau_ss_r = ss0r['Tau']
 Div_ss_r = ss0r['Div']
-T_ss_r = transfers(pi_e,Div_ss,Transfer_ss,e_grid)
+T_ss_r = transfers(pi_e,Div_ss,Tau_ss,e_grid)
 w_ss_r = ss0r['w']
 N_ss_r = ss0r['N']
 
@@ -298,7 +306,7 @@ path_w = w_ss_r + G['w']['rstar'] @ drstar
 path_r = r_ss_r + G['r']['rstar'] @ drstar
 path_div = Div_ss_r + G['Div']['rstar'] @ drstar
 path_n = N_ss_r + G['N']['rstar'] @ drstar
-path_transfer = Transfer_ss_r + G['Transfer']['rstar'] @ drstar
+path_transfer = Tau_ss_r + G['Tau']['rstar'] @ drstar
 
 # Initialize individual consumption paths
 V_prime_p = (1 + r_ss) / (1 + tauc) * c_ss ** (-gamma)
@@ -339,5 +347,8 @@ plt.plot(c_first_bin_rstar * 100,'-.', label="Interest rate policy")
 plt.legend(loc='upper right', frameon=False)
 plt.xlabel("Wealth percentile"), plt.ylabel("Percent deviation from steady state")
 plt.show()
+
+print("Time elapsed: %s seconds" % (round(time.time() - start_time, 0)))
+
 
 

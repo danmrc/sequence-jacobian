@@ -1,4 +1,4 @@
-"""One-Asset HANK model with exogenous transfer and taxes"""
+"""One-Asset HANK model with exogenous transfers and taxes"""
 
 # =============================================================================
 # Initialize
