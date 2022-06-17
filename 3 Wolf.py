@@ -4,7 +4,7 @@
 # Code used by both models
 # =============================================================================
 
-print("MODEL WITH STICKY WAGES, TRANSFERS VS INTEREST RATE CUTS (WOLF 2022)")
+print("STICKY WAGES, TRANSFERS VS INTEREST RATE CUTS (WOLF 2022)")
 import time
 start_time = time.time()
 import numpy as np
@@ -47,11 +47,18 @@ def make_grid(rho_e, sd_e, nE, amin, amax, nA):
     return e_grid, Pi, a_grid, pi_e
 
 def transfers(pi_e, Div, Tau, e_grid):
-    tau_rule, div_rule = np.ones(e_grid.size), e_grid #np.ones(e_grid.size)
+    tau_rule, div_rule = np.ones(e_grid.size), e_grid # dividend proportional to productivity
+    # tau_rule, div_rule = np.array((0, 0, 0, 0, 0, 0, 0, 1)), np.array((0, 0, 0, 0, 0, 0, 0, 1)) # all for the rich
+    # tau_rule, div_rule = np.array((1/pi_e[7], 0, 0, 0, 0, 0, 0, 0)), np.array((1/pi_e[7], 0, 0, 0, 0, 0, 0, 0)) # all for the poor
     div = Div / np.sum(pi_e * div_rule) * div_rule
     tau =  Tau / np.sum(pi_e * tau_rule) * tau_rule 
     T = div + tau
     return T
+
+# # Dividend rule, tests
+# e_test = np.zeros(8)
+# e_test[4:8] = 2
+# print(np.sum(pi_e * e_test))
 
 hh_inp = household.add_hetinputs([make_grid,transfers,income])
 
@@ -77,7 +84,7 @@ def fiscal(r, Tau, B, C, N, tauc, taun, w):
 @simple
 def fiscal2(B, N, r, rhot, Tau, tauc, taun, w):
     # Tau = taun * w * N + B - (1 + r) * B(-1) # immediate adjustment of transfers, no tauc
-    B = (1 + r) * B(-1) 
+    # B = (1 + r) * B(-1) 
     govt_res = Tau - rhot * Tau(-1) - (1 - rhot) * (taun * w * N + B - (1 + r) * B(-1)) # delayed adjustment of transfers
     Deficit = Tau - taun * w * N # primary deficit, no tauc
     Trans = Tau
@@ -168,7 +175,7 @@ print("MODEL 1: TRANSFER POLICY")
 # Steady state
 blocks_ss_tau = [hh_inp, firm, monetary, fiscal, mkt_clearing, nkpc_ss, union_ss]
 hank_ss_tau = create_model(blocks_ss_tau, name="One-Asset HANK SS")
-calib_tau = {'gamma': 1.0, 'nu': 2.0, 'rho_e': 0.966, 'sd_e': 0.5, 'nE': 7,
+calib_tau = {'gamma': 1.0, 'nu': 2.0, 'rho_e': 0.966, 'sd_e': 0.5, 'nE': 8,
                'amin': 0, 'amax': 150, 'nA': 500, 'Y': 1.0, 'Z': 1.0, 'pi': 0.0,
                'mu': 1.2, 'kappa': 0.1, 'rstar': 0.005, 'phi_pi': 0.0, 'B': 6.0,
                'kappaw': 0.003, 'muw': 1.2, 'N': 1.0, 'tauc': 0.0, 'taun': 0.036}
@@ -200,10 +207,10 @@ print("MODEL 2: INTEREST RATE POLICY")
 # Steady state 
 blocks_ss_rstar = [hh_inp, firm, monetary, fiscal2, mkt_clearing, nkpc_ss, union_ss]
 hank_ss_rstar = create_model(blocks_ss_rstar, name = "One-Asset HANK SS")
-calib_rstar = {'gamma': 1.0, 'nu': 2.0, 'rho_e': 0.966, 'sd_e': 0.5, 'nE': 7,
+calib_rstar = {'gamma': 1.0, 'nu': 2.0, 'rho_e': 0.966, 'sd_e': 0.5, 'nE': 8,
                'amin': 0, 'amax': 150, 'nA': 500, 'Y': 1.0, 'Z': 1.0, 'pi': 0.0,
                'mu': 1.2, 'kappa': 0.1, 'rstar': 0.005, 'phi_pi': 1.5, 'B': 6.0,
-               'kappaw': 0.003, 'muw': 1.2, 'N': 1.0, 'tauc': 0.0, 'taun': 0.036, 'rhot': 0.95}
+               'kappaw': 0.003, 'muw': 1.2, 'N': 1.0, 'tauc': 0.0, 'taun': 0.036, 'rhot': 0.0}
 unknowns_ss_rstar = {'beta': 0.986, 'Tau': -0.03}
 targets_ss_rstar = {'asset_mkt': 0, 'govt_res': 0}
 # unknowns_ss_rstar = {'beta': 0.986}
@@ -225,6 +232,52 @@ targets_rstar = ['nkpc_res', 'asset_mkt', 'wnkpc', 'govt_res']
 print("Computing Jacobian...")
 G_rstar = hank_rstar.solve_jacobian(ss_rstar, unknowns_rstar, targets_rstar, exogenous_rstar, T=T)
 print("Done")
+
+
+# =============================================================================
+# Steady-state properties
+# =============================================================================
+    
+ss_param = [['Discount factor', ss_tau['beta'], 'Intertemporal elasticity', ss_tau['gamma']],
+            ['Labor supply elasticity', 1 / ss_tau['nu'], 'Labor supply disutility', ss_tau['phi']],  
+            ['Goods substitutability', ss_tau['mu'] / (ss_tau['mu'] - 1) , 'Price markup', ss_tau['mu']],
+            ['Labor substitutability', ss_tau['muw'] / (ss_tau['muw'] - 1) , 'Wage markup', ss_tau['muw']],
+            ['Price Phillips slope', ss_tau['kappa'], 'Taylor rule inflation ', ss_tau['phi_pi']],
+            ['Wage Phillips slope', ss_tau['kappaw'], 'Taylor rule output ', 0],
+            ['Consumption tax rate', ss_tau['tauc'], 'Labor tax rate', ss_tau['taun']]]
+
+ss_var_tau = [['Output', ss_tau['Y'], 'Government debt', ss_tau['A']],
+              ['Consumption', ss_tau['C'], 'Transfers', ss_tau['Tau']],
+              ['Hours', ss_tau['N'], 'Dividends', ss_tau['Div']], 
+              ['Wage', ss_tau['w'], 'Marginal cost', ss_tau['w'] / ss_tau['Z']],
+              ['Inflation', ss_tau['pi'], 'Consumption tax revenue', ss_tau['tauc'] * ss_tau['C']],
+              ['Nominal interest rate', ss_tau['r']*(1+ss_tau['pi']), 'Labor tax revenue', ss_tau['taun']*ss_tau['N']*ss_tau['w']],
+              ['Real interest rate', ss_tau['r'], 'Debt servicing  cost', ss_tau['r'] * ss_tau['A']]]
+
+ss_var_rstar = [['Output', ss_rstar['Y'], 'Government debt', ss_rstar['A']],
+                ['Consumption', ss_rstar['C'], 'Transfers', ss_rstar['Tau']],
+                ['Hours', ss_rstar['N'], 'Dividends', ss_rstar['Div']], 
+                ['Wage', ss_rstar['w'], 'Marginal cost', ss_rstar['w'] / ss_rstar['Z']],
+                ['Inflation', ss_rstar['pi'], 'Consumption tax revenue', ss_rstar['tauc'] * ss_rstar['C']],
+                ['Nominal interest rate', ss_rstar['r']*(1+ss_rstar['pi']), 'Labor tax revenue', ss_rstar['taun']*ss_rstar['N']*ss_rstar['w']],
+                ['Real interest rate', ss_rstar['r'], 'Debt servicing  cost', ss_rstar['r'] * ss_rstar['A']]]
+
+ss_mkt = [['Bond market', ss_tau['asset_mkt'], 'Goods market (resid)', ss_tau['goods_mkt']],
+          ['Government budget', ss_tau['govt_res'], '', float('nan')]]
+
+# Show steady state
+dash = '-' * 73
+# print(dash)
+print('PARAMETERS')
+for i in range(len(ss_param)):
+    print('{:<24s}{:>12.3f}   {:24s}{:>10.3f}'.format(ss_param[i][0],ss_param[i][1],ss_param[i][2],ss_param[i][3]))
+print('\nMODEL 1 STEADY STATE')
+for i in range(len(ss_var_tau)):
+    print('{:<24s}{:>12.3f}   {:24s}{:>10.3f}'.format(ss_var_tau[i][0],ss_var_tau[i][1],ss_var_tau[i][2],ss_var_tau[i][3]))
+print('\nMODEL 2 STEADY STATE')
+for i in range(len(ss_var_rstar)):
+    print('{:<24s}{:>12.3f}   {:24s}{:>10.3f}'.format(ss_var_rstar[i][0],ss_var_rstar[i][1],ss_var_rstar[i][2],ss_var_rstar[i][3]))
+      # print('{:<24s}{:>12.0e}   {:24s}{:>10.0e}'.format(ss_mkt[i][0],ss_mkt[i][1],ss_mkt[i][2],ss_mkt[i][3]))
 
 
 # =============================================================================
@@ -277,9 +330,9 @@ ax[1, 1].set_title(r'Inflation $\pi$')
 ax[1, 1].plot(dp[0][:iT])
 ax[1, 1].plot(dp[1][:iT],'-.')
 
-ax[1, 2].set_title(r'Real interest rate $r$')
-ax[1, 2].plot(dr[0][:iT])
-ax[1, 2].plot(dr[1][:iT],'-.')
+ax[1, 2].set_title(r'Dividends $d$')
+ax[1, 2].plot(dd[0][:iT])
+ax[1, 2].plot(dd[1][:iT],'-.')
 
 # ax[1, 2].set_title(r'Government budget deficit')
 # ax[1, 2].plot(-dD[0][:50])
@@ -326,15 +379,14 @@ path_tau_tau = Tau_ss_tau + dtau
 
 # Initialize individual consumption paths
 V_prime_p_tau = (1 + r_ss_tau) / (1 + tauc) * c_ss_tau ** (-gamma)
-c_all_tau, n_all_tau = np.zeros((nE, nA, T)), np.zeros((nE, nA, T))
+c_all_tau = np.zeros((nE, nA, T))
 
 # Compute all individual consumption paths
 print("MODEL 1: Computing individual paths...")
 for t in range(T-1, -1, -1):
-    V_prime_p_tau, _, c, n = iterate_h(household_d, V_prime_p_tau, Pi_tau, a_grid_tau, path_w_tau[t], path_n_tau[t], taun, pi_e_tau, 
-                                           e_grid_tau, path_r_tau[t], path_div_tau[t], path_tau_tau[t], beta, gamma, tauc)
+    V_prime_p_tau, _, c, _ = iterate_h(household_d, V_prime_p_tau, Pi_tau, a_grid_tau, path_w_tau[t], path_n_tau[t], taun, pi_e_tau, 
+                                            e_grid_tau, path_r_tau[t], path_div_tau[t], path_tau_tau[t], beta, gamma, tauc)
     c_all_tau[:, :, t] = c  
-    n_all_tau[:, :, t] = n
 print("Done")
 
 
@@ -369,15 +421,14 @@ path_tau_rstar = Tau_ss_rstar + G_rstar['Tau']['rstar'] @ drstar
 
 # Initialize individual consumption paths
 V_prime_p_rstar = (1 + r_ss_rstar) / (1 + tauc) * c_ss_rstar ** (-gamma)
-c_all_rstar, n_all_rstar = np.zeros((nE, nA, T)), np.zeros((nE, nA, T))
+c_all_rstar = np.zeros((nE, nA, T))
 
 # Compute all individual consumption paths
 print("MODEL 2: Computing individual paths...")
 for t in range(T-1, -1, -1):
-    V_prime_p_rstar, _, c, n = iterate_h(household_d, V_prime_p_rstar, Pi_rstar, a_grid_rstar, path_w_rstar[t], path_n_rstar[t], taun, pi_e_rstar, 
-                                         e_grid_rstar, path_r_rstar[t], path_div_rstar[t], path_tau_rstar[t], beta, gamma, tauc)
+    V_prime_p_rstar, _, c, _ = iterate_h(household_d, V_prime_p_rstar, Pi_rstar, a_grid_rstar, path_w_rstar[t], path_n_rstar[t], taun, pi_e_rstar, 
+                                          e_grid_rstar, path_r_rstar[t], path_div_rstar[t], path_tau_rstar[t], beta, gamma, tauc)
     c_all_rstar[:, :, t] = c  
-    n_all_rstar[:, :, t] = n
 print("Done")
 
 # Select first period only and express as deviation from steady state
@@ -387,15 +438,21 @@ c_first_dev_rstar = (c_all_rstar[:, :, 0] - c_ss_rstar) / c_ss_rstar
 # Weigh response by mass of agents
 c_first_tau, c_first_rstar = np.zeros(nA), np.zeros(nA)
 for i in range(nA):
-    c_first_tau[i] = c_first_dev_tau[:, i] @ D_ss_tau[:, i]
-    c_first_rstar[i] = c_first_dev_rstar[:, i] @ D_ss_rstar[:, i]
+    # c_first_tau[i] = c_first_dev_tau[:, i] @ D_ss_tau[:, i]
+    # c_first_rstar[i] = c_first_dev_rstar[:, i] @ D_ss_rstar[:, i] 
+    c_first_tau[i] = (c_first_dev_tau[:, i] @ D_ss_tau[:, i]) / np.sum(D_ss_tau[:,i])
+    c_first_rstar[i] = (c_first_dev_rstar[:, i] @ D_ss_rstar[:, i]) / np.sum(D_ss_rstar[:,i])
+     
+# Different weighting
+# c_first_tau = np.sum(c_first_dev_tau, axis=1)
+# c_first_rstar = np.sum(c_first_dev_rstar, axis=1)  
        
 # Pool into percentile bins
-c_first_bin_tau = c_first_tau.reshape(-1, 100, order='F').sum(axis=0)
-c_first_bin_rstar = c_first_rstar.reshape(-1, 100, order='F').sum(axis=0)
+c_first_bin_tau = c_first_tau.reshape(-1, 100, order='F').mean(axis=0)
+c_first_bin_rstar = c_first_rstar.reshape(-1, 100, order='F').mean(axis=0)
 
 # Plot results
-plt.title(r'Consumption $c$')
+plt.title(r'Impact response of consumption $c$ to transfer policy versus interest rate policy')
 plt.plot(c_first_bin_tau * 100, label="Transfer policy")
 plt.plot(c_first_bin_rstar * 100,'-.', label="Interest rate policy")
 plt.legend(loc='upper right', frameon=False)
@@ -405,57 +462,6 @@ plt.show()
 
 
 
-# =============================================================================
-# Steady-state and dynamic properties
-# =============================================================================
 
-# # Difference consumption tax vs transfers
-# dif = [['DIFFERENCE \u03C4c vs \u03C4','IMPACT RATIO','CUMULATIVE SUM'],
-#       ['Shocks',np.ndarray.item(- (dtauc[:1] * ss0['tauc']) / (dT[2][:1, :] * ss0['Trans'])), - np.sum(dtauc) - np.sum(dT[2][:300])],
-#       ['Output',np.ndarray.item(dY[1][:1, :] / dY[2][:1, :]), np.sum(dY[1][:300, :]) - np.sum(dY[2][:300, :])],
-#       ['Consumption',np.ndarray.item(dC[1][:1, :] / dC[2][:1, :]), np.sum(dC[1][:300, :]) - np.sum(dC[2][:300, :])],
-#       ['Inflation',np.ndarray.item(dp[1][:1, :] / dp[2][:1, :]), np.sum(dp[1][:300, :]) - np.sum(dp[2][:300, :])],
-#       ['Wage',np.ndarray.item(dw[1][:1, :] / dw[2][:1, :]), np.sum(dw[1][:300, :]) - np.sum(dw[2][:300, :])],
-#       ['Deficit',np.ndarray.item(dD[1][:1, :] / dD[2][:1, :]), np.sum(dD[1][:300, :]) - np.sum(dD[2][:300, :])]]
-# dash = '-' * 50
-# for i in range(len(dif)):
-#     if i == 0:
-#         print(dash)
-#         print('{:<20s} {:^12s}  {:>15s}'.format(dif[i][0],dif[i][1],dif[i][2]))
-#         print(dash)
-#     else:
-#         print('{:<20s} {:^12.3f}  {:>15.3f}'.format(dif[i][0],dif[i][1],dif[i][2]))
-        
-# # Show steady state
-# ss_param = [['Discount factor', ss0['beta'], 'Intertemporal elasticity', ss0['gamma']],
-#         ['Labor supply elasticity', 1 / ss0['nu'], 'Labor supply disutility', ss0['phi']],  
-#         ['Goods substitutability', ss0['mu'] / (ss0['mu'] - 1) , 'Price markup', ss0['mu']],
-#         ['Labor substitutability', ss0['muw'] / (ss0['muw'] - 1) , 'Wage markup', ss0['muw']],
-#         ['Price Phillips slope', ss0['kappa'], 'Taylor rule inflation ', ss0['phi_pi']],
-#         ['Wage Phillips slope', ss0['kappaw'], 'Taylor rule output ', 0],
-#         ['Consumption tax rate', ss0['tauc'], 'Labor tax rate', ss0['taun']]]
-
-# ss_var = [['Output', ss0['Y'], 'Government debt', ss0['A']],
-#         ['Consumption', ss0['C'], 'Transfers', ss0['Tau']],
-#         ['Hours', ss0['N'], 'Dividends', ss0['Div']], 
-#         ['Wage', ss0['w'], 'Marginal cost', ss0['w'] / ss0['Z']],
-#         ['Inflation', ss0['pi'], 'Consumption tax revenue', ss0['tauc'] * ss0['C']],
-#         ['Nominal interest rate', ss0['r']*(1+ss0['pi']), 'Labor tax revenue', ss0['taun']*ss0['N']*ss0['w']],
-#         ['Real interest rate', ss0['r'], 'Debt servicing  cost', ss0['r'] * ss0['A']]]
-# ss_mkt = [['Bond market', ss0['asset_mkt'], 'Goods market (resid)', ss0['goods_mkt']],
-#           ['Government budget', ss0['govt_res'], '', float('nan')]]
-
-# dash = '-' * 73
-# print(dash)
-# print('PARAMETERS')
-# for i in range(len(ss_param)):
-#       print('{:<24s}{:>12.3f}   {:24s}{:>10.3f}'.format(ss_param[i][0],ss_param[i][1],ss_param[i][2],ss_param[i][3]))
-# print('\nVARIABLES')
-# for i in range(len(ss_var)):
-#       print('{:<24s}{:>12.3f}   {:24s}{:>10.3f}'.format(ss_var[i][0],ss_var[i][1],ss_var[i][2],ss_var[i][3]))
-# print('\nMARKET CLEARING')
-# for i in range(len(ss_mkt)):
-#       print('{:<24s}{:>12.0e}   {:24s}{:>10.0e}'.format(ss_mkt[i][0],ss_mkt[i][1],ss_mkt[i][2],ss_mkt[i][3]))
-# print(dash)
 
 print("Time elapsed: %s seconds" % (round(time.time() - start_time, 0)))
