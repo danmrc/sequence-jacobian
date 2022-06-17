@@ -11,6 +11,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sequence_jacobian import het, simple, create_model             # functions
 from sequence_jacobian import interpolate, grids, misc, estimation  # modules
+import scipy as sp
+
+def chebyschev_grid(amax,n,amin):
+    grid = np.linspace(1,n,num = n)
+    cheby_node = -np.cos((2*grid-1)/(2*n)*np.pi)
+    adj_node = (cheby_node+1)*(amax - amin)/2 + amin
+    return adj_node
 
 def household_guess(a_grid, r, z_grid, gamma, T, tauc):
     new_z = np.ones((z_grid.shape[0],1))
@@ -43,7 +50,7 @@ def income(e_grid, w, N, taun):
 
 def make_grid(rho_e, sd_e, nE, amin, amax, nA):
     e_grid, pi_e, Pi = grids.markov_rouwenhorst(rho=rho_e, sigma=sd_e, N=nE)
-    a_grid = grids.agrid(amin=amin, amax=amax, n=nA)
+    a_grid = chebyschev_grid(amin=amin, amax=amax, n=nA)
     return e_grid, Pi, a_grid, pi_e
 
 def transfers(pi_e, Div, Tau, e_grid):
@@ -334,6 +341,12 @@ c_first_tau, c_first_rstar = np.zeros(nA), np.zeros(nA)
 for i in range(nA):
     c_first_tau[i] = c_first_dev_tau[:, i] @ D_ss[:, i]
     c_first_rstar[i] = c_first_dev_rstar[:, i] @ D_ss_r[:, i]
+
+wealth_perc = chebyschev_grid(1, nA, 0)
+plt.plot(wealth_perc,c_first_tau,label = "Transfer")
+plt.plot(wealth_perc,c_first_rstar,label = "Interest")
+plt.legend()
+plt.show()
        
 # Pool into percentile bins
 c_first_bin_tau = c_first_tau.reshape(-1, 100, order='F').sum(axis=0)

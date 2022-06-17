@@ -12,6 +12,12 @@ import matplotlib.pyplot as plt
 from sequence_jacobian import het, simple, create_model             # functions
 from sequence_jacobian import interpolate, grids, misc, estimation  # modules
 
+def chebyschev_grid(amax,n,amin):
+    grid = np.linspace(1,n,num = n)
+    cheby_node = -np.cos((2*grid-1)/(2*n)*np.pi)
+    adj_node = (cheby_node+1)*(amax - amin)/2 + amin
+    return adj_node
+
 # Bisection
 def bisection_onestep(f,a,b):
     if not np.all(f(a)*f(b) <= 0):
@@ -377,6 +383,9 @@ for i in range(nA):
     n_first_tauc[i] = n_first_dev_tauc[:, i] @ D_ss[:, i]
     c_first_tau[i] = c_first_dev_tau[:, i] @ D_ss[:, i]
     n_first_tau[i] = n_first_dev_tau[:, i] @ D_ss[:, i]
+
+plt.plot(a_grid[1:],n_first_tau[1:])
+
        
 # Pool into percentile bins
 c_first_bin_tauc = c_first_tauc.reshape(-1, 100, order='F').sum(axis=0)
