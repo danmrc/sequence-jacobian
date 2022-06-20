@@ -47,7 +47,7 @@ def make_grid(rho_e, sd_e, nE, amin, amax, nA):
     return e_grid, Pi, a_grid, pi_e
 
 def transfers(pi_e, Div, Tau, e_grid):
-    tau_rule, div_rule = np.ones(e_grid.size), e_grid # dividend proportional to productivity
+    tau_rule, div_rule = np.ones(e_grid.size), e_grid # uniform transfer, dividend proportional to productivity
     # tau_rule, div_rule = np.array((0, 0, 0, 0, 0, 0, 0, 1)), np.array((0, 0, 0, 0, 0, 0, 0, 1)) # all for the rich
     # tau_rule, div_rule = np.array((1/pi_e[7], 0, 0, 0, 0, 0, 0, 0)), np.array((1/pi_e[7], 0, 0, 0, 0, 0, 0, 0)) # all for the poor
     div = Div / np.sum(pi_e * div_rule) * div_rule
@@ -170,7 +170,7 @@ def iterate_h(foo, V_prime_start, Pi, a_grid, w, N, taun, pi_e, e_grid, r,
 # First model: transfer policy
 # =============================================================================
 
-print("MODEL 1: TRANSFER POLICY")
+print("\nMODEL 1: TRANSFER POLICY")
 
 # Steady state
 blocks_ss_tau = [hh_inp, firm, monetary, fiscal, mkt_clearing, nkpc_ss, union_ss]
@@ -377,16 +377,24 @@ path_div_tau = Div_ss_tau + G_tau['Div']['Tau'] @ dtau
 path_n_tau = N_ss_tau + G_tau['N']['Tau'] @ dtau
 path_tau_tau = Tau_ss_tau + dtau
 
-# Initialize individual consumption paths
-V_prime_p_tau = (1 + r_ss_tau) / (1 + tauc) * c_ss_tau ** (-gamma)
-c_all_tau = np.zeros((nE, nA, T))
-
 # Compute all individual consumption paths
 print("MODEL 1: Computing individual paths...")
+V_prime_p_tau = (1 + r_ss_tau) / (1 + tauc) * c_ss_tau ** (-gamma)
+c_all_tau = np.zeros((nE, nA, T))
 for t in range(T-1, -1, -1):
     V_prime_p_tau, _, c, _ = iterate_h(household_d, V_prime_p_tau, Pi_tau, a_grid_tau, path_w_tau[t], path_n_tau[t], taun, pi_e_tau, 
-                                            e_grid_tau, path_r_tau[t], path_div_tau[t], path_tau_tau[t], beta, gamma, tauc)
+                                       e_grid_tau, path_r_tau[t], path_div_tau[t], path_tau_tau[t], beta, gamma, tauc)
     c_all_tau[:, :, t] = c  
+print("Done")
+
+# Direct effect of policy
+print("MODEL 1: Computing direct effect...")
+V_prime_p_tau = (1 + r_ss_tau) / (1 + tauc) * c_ss_tau ** (-gamma)
+c_direct_tau = np.zeros((nE, nA, T))
+for t in range(T-1, -1, -1):
+    V_prime_p_tau, _, c, _ = iterate_h(household_d, V_prime_p_tau, Pi_tau, a_grid_tau, w_ss_tau, N_ss_tau, taun, pi_e_tau, 
+                                       e_grid_tau, r_ss_tau, Div_ss_tau, path_tau_tau[t], beta, gamma, tauc)
+    c_direct_tau[:, :, t] = c  
 print("Done")
 
 
@@ -419,44 +427,80 @@ path_div_rstar = Div_ss_rstar + G_rstar['Div']['rstar'] @ drstar
 path_n_rstar = N_ss_rstar + G_rstar['N']['rstar'] @ drstar
 path_tau_rstar = Tau_ss_rstar + G_rstar['Tau']['rstar'] @ drstar
 
-# Initialize individual consumption paths
+# Compute all individual consumption paths
+print("MODEL 2: Computing individual paths...")
 V_prime_p_rstar = (1 + r_ss_rstar) / (1 + tauc) * c_ss_rstar ** (-gamma)
 c_all_rstar = np.zeros((nE, nA, T))
 
-# Compute all individual consumption paths
-print("MODEL 2: Computing individual paths...")
 for t in range(T-1, -1, -1):
     V_prime_p_rstar, _, c, _ = iterate_h(household_d, V_prime_p_rstar, Pi_rstar, a_grid_rstar, path_w_rstar[t], path_n_rstar[t], taun, pi_e_rstar, 
                                           e_grid_rstar, path_r_rstar[t], path_div_rstar[t], path_tau_rstar[t], beta, gamma, tauc)
     c_all_rstar[:, :, t] = c  
 print("Done")
 
+# Direct effect of policy
+print("MODEL 2: Computing direct effect...")
+V_prime_p_rstar = (1 + r_ss_rstar) / (1 + tauc) * c_ss_rstar ** (-gamma)
+c_direct_rstar = np.zeros((nE, nA, T))
+for t in range(T-1, -1, -1):
+    V_prime_p_rstar, _, c, _ = iterate_h(household_d, V_prime_p_rstar, Pi_rstar, a_grid_rstar, w_ss_rstar, N_ss_rstar, taun, pi_e_rstar, 
+                                          e_grid_rstar, path_r_rstar[t], Div_ss_rstar, path_tau_rstar[t], beta, gamma, tauc)
+    c_direct_rstar[:, :, t] = c  
+print("Done")
+
 # Select first period only and express as deviation from steady state
 c_first_dev_tau = (c_all_tau[:, :, 0] - c_ss_tau) / c_ss_tau
+c_first_dev_tau_direct = (c_direct_tau[:, :, 0] - c_ss_tau) / c_ss_tau
 c_first_dev_rstar = (c_all_rstar[:, :, 0] - c_ss_rstar) / c_ss_rstar
+c_first_dev_rstar_direct = (c_direct_rstar[:, :, 0] - c_ss_rstar) / c_ss_rstar
 
 # Weigh response by mass of agents
-c_first_tau, c_first_rstar = np.zeros(nA), np.zeros(nA)
+c_first_tau, c_first_tau_direct, c_first_rstar, c_first_rstar_direct = np.zeros(nA), np.zeros(nA), np.zeros(nA), np.zeros(nA)
 for i in range(nA):
     # c_first_tau[i] = c_first_dev_tau[:, i] @ D_ss_tau[:, i]
     # c_first_rstar[i] = c_first_dev_rstar[:, i] @ D_ss_rstar[:, i] 
     c_first_tau[i] = (c_first_dev_tau[:, i] @ D_ss_tau[:, i]) / np.sum(D_ss_tau[:,i])
+    c_first_tau_direct[i] = (c_first_dev_tau_direct[:, i] @ D_ss_tau[:, i]) / np.sum(D_ss_tau[:,i])
     c_first_rstar[i] = (c_first_dev_rstar[:, i] @ D_ss_rstar[:, i]) / np.sum(D_ss_rstar[:,i])
-     
+    c_first_rstar_direct[i] = (c_first_dev_rstar_direct[:, i] @ D_ss_rstar[:, i]) / np.sum(D_ss_rstar[:,i])
+    
 # Different weighting
 # c_first_tau = np.sum(c_first_dev_tau, axis=1)
 # c_first_rstar = np.sum(c_first_dev_rstar, axis=1)  
-       
+         
 # Pool into percentile bins
 c_first_bin_tau = c_first_tau.reshape(-1, 100, order='F').mean(axis=0)
-c_first_bin_rstar = c_first_rstar.reshape(-1, 100, order='F').mean(axis=0)
-
+c_first_bin_tau_direct = c_first_tau_direct.reshape(-1, 100, order='F').mean(axis=0) 
+c_first_bin_tau_indirect = c_first_bin_tau - c_first_bin_tau_direct
+c_first_bin_rstar = c_first_rstar.reshape(-1, 100, order='F').mean(axis=0)  
+c_first_bin_rstar_direct = c_first_rstar_direct.reshape(-1, 100, order='F').mean(axis=0) 
+c_first_bin_rstar_indirect = c_first_bin_rstar - c_first_bin_rstar_direct
+ 
 # Plot results
-plt.title(r'Impact response of consumption $c$ to transfer policy versus interest rate policy')
-plt.plot(c_first_bin_tau * 100, label="Transfer policy")
-plt.plot(c_first_bin_rstar * 100,'-.', label="Interest rate policy")
-plt.legend(loc='upper right', frameon=False)
-plt.xlabel("Wealth percentile"), plt.ylabel("Percent deviation from steady state")
+color_map = ["#FFFFFF", "#D95319"] # myb: "#0072BD"
+fig, ax = plt.subplots(1,2)
+ax[0].set_title(r'Interest rate policy')
+ax[0].plot(c_first_bin_rstar_direct, label="Direct effect", linewidth=3)  
+ax[0].stackplot(range(100), c_first_bin_rstar_direct, c_first_bin_rstar_indirect, colors=color_map, labels=["", "+ GE"], alpha=0.5)  
+# ax[0].plot(c_first_bin_rstar_indirect, label="indirect effect") 
+ax[0].legend(loc='upper left', frameon=False)
+ax[0].set_xlabel("Wealth percentile"), ax[0].set_ylabel("Percent deviation from steady state")
+
+ax[1].set_title(r'Transfer policy')
+ax[1].plot(c_first_bin_tau_direct, label="direct effect", linewidth=3)    
+ax[1].stackplot(range(100), c_first_bin_tau_direct, c_first_bin_tau_indirect, colors=color_map, labels=["", "+ GE"], alpha=0.5)   
+ax[1].legend(loc='upper left', frameon=False)
+ax[1].set_xlabel("Wealth percentile")
+plt.show()
+     
+
+
+# plot results
+plt.title(r'impact response of consumption $c$ to transfer policy versus interest rate policy')
+plt.plot(c_first_tau * 100, label="transfer policy")
+plt.plot(c_first_rstar * 100,'-.', label="interest rate policy")
+# plt.legend(loc='upper right', frameon=false)
+plt.xlabel("wealth percentile"), plt.ylabel("percent deviation from steady state")
 plt.show()
 
 

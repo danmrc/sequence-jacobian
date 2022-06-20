@@ -222,6 +222,11 @@ htm = D_dist[0]
 zero_asset = np.where(a_ss == 0)
 htm = np.sum(D_ss[zero_asset])
 
+# Population distribution
+l_tot = np.sum(D_ss);
+l_dist = np.sum(D_ss, axis=0)
+l_bin = l_dist.reshape(-1, 100, order='F').sum(axis=0)
+
 # Wealth distribution
 a_tot = np.sum(np.multiply(a_ss, D_ss))
 a_dist = np.sum(np.multiply(a_ss, D_ss), axis=0)
@@ -274,35 +279,38 @@ ax[0, 0].set_title(r'Skill $e$ distribution')
 ax[0, 0].plot(e_grid, pi_e)
 ax[0, 0].fill_between(e_grid, pi_e)
 
-ax[0, 1].set_title(r'Wealth $a$ distribution')
-ax[0, 1].plot(a_bin / a_tot)
-ax[0, 1].fill_between(range(100), a_bin / a_tot)
+ax[0, 1].set_title(r'Poplulation distribution')
+ax[0, 1].plot(l_bin)
+ax[0, 1].fill_between(range(100), l_bin)
 
-ax[0, 2].set_title(r'Income $y$ and consumption $c$ distribution')
-ax[0, 2].plot(y_bin / y_tot)
-ax[0, 2].fill_between(range(100), y_bin / y_tot)
-ax[0, 2].plot(c_bin / c_tot)
+ax[0, 2].set_title(r'Wealth $a$ distribution')
+ax[0, 2].plot(a_bin / a_tot)
+ax[0, 2].fill_between(range(100), a_bin / a_tot)
 
-ax[0, 3].set_title(r'Labor supply $n$ distribution')
-ax[0, 3].plot(n_bin / n_tot)
-ax[0, 3].fill_between(range(100), n_bin / n_tot)
+ax[0, 3].set_title(r'Income $y$ and consumption $c$ distribution')
+ax[0, 3].plot(y_bin / y_tot, label = "Income distribution")
+ax[0, 3].fill_between(range(100), y_bin / y_tot)
+ax[0, 3].plot(c_bin / c_tot, label = "Consumption distribution")
+ax[0, 3].legend(frameon=False)
 
-ax[1, 0].set_title(r'Transfer $\tau$ distribution')
-ax[1, 0].plot(tau_bin / tau_tot)
-ax[1, 0].fill_between(range(100), tau_bin / tau_tot)
+ax[1, 0].set_title(r'Labor supply $n$ distribution')
+ax[1, 0].plot(n_bin / n_tot)
+ax[1, 0].fill_between(range(100), n_bin / n_tot)
 
-ax[1, 1].set_title(r'Wealth Lorenz curve')
-# ax[1, 1].plot(np.cumsum(mass[asset_pos]), np.cumsum(asset_mass / total_wealth)) 
-ax[1, 1].plot(D_grid, a_lorenz)
-ax[1, 1].plot([0, 1], [0, 1], '-')
+ax[1, 1].set_title(r'Transfer $\tau$ and dividend $d$ distribution')
+ax[1, 1].plot(tau_bin / tau_tot, label = "Transfer distribution")
+ax[1, 1].fill_between(range(100), tau_bin / tau_tot)
+ax[1, 1].plot(d_bin / d_tot, label = "Dividend distribution")
+# ax[1, 3].fill_between(range(100), d_bin / d_tot)
+ax[1, 1].legend(frameon=False)
 
-ax[1, 2].set_title(r'Income Lorenz curve')
-ax[1, 2].plot(D_grid, y_lorenz) 
+ax[1, 2].set_title(r'Wealth Lorenz curve')
+ax[1, 2].plot(D_grid, a_lorenz)
 ax[1, 2].plot([0, 1], [0, 1], '-')
 
-ax[1, 3].set_title(r'Dividend $d$ distribution')
-ax[1, 3].plot(d_bin / d_tot)
-ax[1, 3].fill_between(range(100), d_bin / d_tot)
+ax[1, 3].set_title(r'Income Lorenz curve')
+ax[1, 3].plot(D_grid, y_lorenz) 
+ax[1, 3].plot([0, 1], [0, 1], '-')
 plt.show()
 
 # Show steady state

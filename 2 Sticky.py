@@ -157,6 +157,173 @@ G = hank.solve_jacobian(ss, unknowns, targets, exogenous, T=T)
 print("Jacobian solved")
 
 
+#==============================================================================
+# Steady-state properties
+# =============================================================================
+
+# Parameters
+nE = ss['nE']
+nA = ss['nA']
+nu = ss['nu']
+phi = ss['phi']
+tauc = ss['tauc']
+taun = ss['taun']
+
+# Steady-state variables
+A_ss = ss['A']
+C_ss = ss['C']
+Div_ss = ss['Div']
+N_ss = ss['N']
+r_ss = ss['r']
+Tau_ss = ss['Tau']
+w_ss = ss['w']
+Y_ss = ss['Y']
+
+e_grid = ss.internals['household']['e_grid']
+a_grid = ss.internals['household']['a_grid']
+D_ss = ss.internals['household']['Dbeg']
+pi_e =  ss.internals['household']['pi_e']
+Pi = ss.internals['household']['Pi']
+a_ss = ss.internals['household']['a']
+c_ss = ss.internals['household']['c']
+T_ss = transfers(pi_e, Div_ss, Tau_ss, e_grid)
+
+# Share of hand-to-mouth
+D_dist = np.sum(D_ss, axis=0)
+htm = D_dist[0]
+
+# Share of hand-to-mouth, other method
+zero_asset = np.where(a_ss == 0)
+htm = np.sum(D_ss[zero_asset])
+
+# Population distribution
+l_tot = np.sum(D_ss);
+l_dist = np.sum(D_ss, axis=0)
+l_bin = l_dist.reshape(-1, 100, order='F').sum(axis=0)
+
+# Wealth distribution
+a_tot = np.sum(np.multiply(a_ss, D_ss))
+a_dist = np.sum(np.multiply(a_ss, D_ss), axis=0)
+a_bin = a_dist.reshape(-1, 100, order='F').sum(axis=0)
+
+# Income distribution
+y_ss = ((1 - taun) * w_ss * np.multiply(N_ss, e_grid[:, None]) + r_ss * a_ss + T_ss[:, None]) / (1 + tauc)
+y_dist = np.sum(np.multiply(y_ss, D_ss), axis=0)
+y_tot = np.sum(y_dist)
+y_bin = y_dist.reshape(-1, 100, order='F').sum(axis=0)
+
+# Consumption distribution
+c_tot = np.sum(np.multiply(c_ss, D_ss))
+c_dist = np.sum(np.multiply(c_ss, D_ss), axis=0)
+c_bin = c_dist.reshape(-1, 100, order='F').sum(axis=0)
+
+# # Labor supply distribution
+# n_tot = np.sum(np.multiply(n_ss, D_ss))
+# n_dist = np.sum(np.multiply(n_ss, D_ss), axis=0)
+# n_bin = n_dist.reshape(-1, 100, order='F').sum(axis=0)
+
+# Dividend distribution
+d_tot = np.sum(np.multiply(T_ss[:, None] - Tau_ss, D_ss))
+d_dist = np.sum(np.multiply(T_ss[:, None] - Tau_ss, D_ss), axis=0)
+d_bin = d_dist.reshape(-1, 100, order='F').sum(axis=0)
+
+# Transfer distribution
+tau_tot = np.sum(np.multiply(Tau_ss, D_ss))
+tau_dist = np.sum(np.multiply(Tau_ss, D_ss), axis=0)
+tau_bin = tau_dist.reshape(-1, 100, order='F').sum(axis=0)
+
+# Wealth Lorenz curve
+D_grid = np.append(np.zeros(1), np.cumsum(D_dist))
+a_lorenz = np.append(np.zeros(1), np.cumsum(a_dist / a_tot))
+a_lorenz_area = np.trapz(a_lorenz, x=D_grid) # area below Lorenz curve
+a_gini = (0.5 - a_lorenz_area) / 0.5
+print("Wealth Gini =", np.round(a_gini, 3))
+
+# Income Lorenz curve
+y_lorenz = np.append(np.zeros(1), np.cumsum(y_dist / y_tot))
+y_lorenz_area = np.trapz(y_lorenz, x=D_grid) # area below Lorenz curve
+y_gini = (0.5 - y_lorenz_area) / 0.5
+print("Income Gini =", np.round(y_gini, 3))
+
+# Plot distributions
+plt.rcParams["figure.figsize"] = (16,7)
+fig, ax = plt.subplots(2, 4)
+
+ax[0, 0].set_title(r'Skill $e$ distribution')
+ax[0, 0].plot(e_grid, pi_e)
+ax[0, 0].fill_between(e_grid, pi_e)
+
+ax[0, 1].set_title(r'Poplulation distribution')
+ax[0, 1].plot(l_bin)
+ax[0, 1].fill_between(range(100), l_bin)
+
+ax[0, 2].set_title(r'Wealth $a$ distribution')
+ax[0, 2].plot(a_bin / a_tot)
+ax[0, 2].fill_between(range(100), a_bin / a_tot)
+
+ax[0, 3].set_title(r'Income $y$ and consumption $c$ distribution')
+ax[0, 3].plot(y_bin / y_tot)
+ax[0, 3].fill_between(range(100), y_bin / y_tot)
+ax[0, 3].plot(c_bin / c_tot)
+
+# ax[0, 3].set_title(r'Labor supply $n$ distribution')
+# ax[0, 3].plot(n_bin / n_tot)
+# ax[0, 3].fill_between(range(100), n_bin / n_tot)
+
+ax[1, 0].set_title(r'Dividend $d$ distribution')
+ax[1, 0].plot(d_bin / d_tot)
+ax[1, 0].fill_between(range(100), d_bin / d_tot)
+
+ax[1, 1].set_title(r'Transfer $\tau$ distribution')
+ax[1, 1].plot(tau_bin / tau_tot)
+ax[1, 1].fill_between(range(100), tau_bin / tau_tot)
+
+ax[1, 2].set_title(r'Wealth Lorenz curve')
+ax[1, 2].plot(D_grid, a_lorenz)
+ax[1, 2].plot([0, 1], [0, 1], '-')
+
+ax[1, 3].set_title(r'Income Lorenz curve')
+ax[1, 3].plot(D_grid, y_lorenz) 
+ax[1, 3].plot([0, 1], [0, 1], '-')
+plt.show()
+
+# Show steady state
+ss_param = [['Discount factor', ss['beta'], 'Intertemporal elasticity', ss['gamma']],
+        ['Labor supply elasticity', 1 / ss['nu'], 'Labor supply disutility', ss['phi']],  
+        ['Goods substitutability', ss['mu'] / (ss['mu'] - 1) , 'Price markup', ss['mu']],
+        ['Phillips curve slope', ss['kappa'], 'Taylor rule inflation ', ss['phi_pi']],
+        ['Consumption tax rate', ss['tauc'], 'Labor tax rate', ss['taun']]]
+
+ss_var = [['Output', ss['Y'], 'Government debt', ss['A']],
+        ['Consumption', ss['C'], 'Transfers', ss['Tau']],
+        ['Hours', ss['N'], 'Dividends', ss['Div']], 
+        ['Wage', ss['w'], 'Marginal cost', ss['w'] / ss['Z']],
+        ['Inflation', ss['pi'], 'Consumption tax revenue', ss['tauc'] * ss['C']],
+        ['Nominal interest rate', ss['r']*(1+ss['pi']), 'Labor tax revenue', ss['taun']*ss['N']*ss['w']],
+        ['Real interest rate', ss['r'], 'Debt servicing  cost', ss['r'] * ss['A']]]
+
+ss_mom = [['Share of hand-to-mouth', htm, 'Gini index', a_gini]]
+
+ss_mkt = [['Bond market', ss['asset_mkt'], 'Labor market', ss['labor_mkt']],
+          ['Goods market (resid)', ss['goods_mkt'], 'Government budget', ss['govt_res']]]
+
+dash = '-' * 73
+print(dash)
+print('PARAMETERS')
+for i in range(len(ss_param)):
+      print('{:<24s}{:>12.3f}   {:24s}{:>10.3f}'.format(ss_param[i][0],ss_param[i][1],ss_param[i][2],ss_param[i][3]))
+print('\nAGGREGATE VARIABLES IN STEADY STATE')
+for i in range(len(ss_var)):
+      print('{:<24s}{:>12.3f}   {:24s}{:>10.3f}'.format(ss_var[i][0],ss_var[i][1],ss_var[i][2],ss_var[i][3]))
+print('\nDISTRIBUTIONAL VARIABLES IN STEADY STATE')
+for i in range(len(ss_mom)):
+      print('{:<24s}{:>12.3f}   {:24s}{:>10.3f}'.format(ss_mom[i][0],ss_mom[i][1],ss_mom[i][2],ss_mom[i][3]))
+print('\nMARKET CLEARING')
+for i in range(len(ss_mkt)):
+      print('{:<24s}{:>12.0e}   {:24s}{:>10.0e}'.format(ss_mkt[i][0],ss_mkt[i][1],ss_mkt[i][2],ss_mkt[i][3]))
+print(dash)
+
+
 # =============================================================================
 # Impulse response functions
 # =============================================================================
@@ -230,7 +397,7 @@ plt.show()
 
 
 # =============================================================================
-# Steady-state and dynamic properties
+# Dynamic properties
 # =============================================================================
 
 # Difference consumption tax vs transfers
@@ -250,36 +417,36 @@ for i in range(len(dif)):
     else:
         print('{:<20s} {:^12.3f}  {:>15.3f}'.format(dif[i][0],dif[i][1],dif[i][2]))
         
-# Show steady state
-ss_param = [['Discount factor', ss0['beta'], 'Intertemporal elasticity', ss0['gamma']],
-        ['Labor supply elasticity', 1 / ss0['nu'], 'Labor supply disutility', ss0['phi']],  
-        ['Goods substitutability', ss0['mu'] / (ss0['mu'] - 1) , 'Price markup', ss0['mu']],
-        ['Labor substitutability', ss0['muw'] / (ss0['muw'] - 1) , 'Wage markup', ss0['muw']],
-        ['Price Phillips slope', ss0['kappa'], 'Taylor rule inflation ', ss0['phi_pi']],
-        ['Wage Phillips slope', ss0['kappaw'], 'Taylor rule output ', 0],
-        ['Consumption tax rate', ss0['tauc'], 'Labor tax rate', ss0['taun']]]
+# # Show steady state
+# ss_param = [['Discount factor', ss0['beta'], 'Intertemporal elasticity', ss0['gamma']],
+#         ['Labor supply elasticity', 1 / ss0['nu'], 'Labor supply disutility', ss0['phi']],  
+#         ['Goods substitutability', ss0['mu'] / (ss0['mu'] - 1) , 'Price markup', ss0['mu']],
+#         ['Labor substitutability', ss0['muw'] / (ss0['muw'] - 1) , 'Wage markup', ss0['muw']],
+#         ['Price Phillips slope', ss0['kappa'], 'Taylor rule inflation ', ss0['phi_pi']],
+#         ['Wage Phillips slope', ss0['kappaw'], 'Taylor rule output ', 0],
+#         ['Consumption tax rate', ss0['tauc'], 'Labor tax rate', ss0['taun']]]
 
-ss_var = [['Output', ss0['Y'], 'Government debt', ss0['A']],
-        ['Consumption', ss0['C'], 'Transfers', ss0['Tau']],
-        ['Hours', ss0['N'], 'Dividends', ss0['Div']], 
-        ['Wage', ss0['w'], 'Marginal cost', ss0['w'] / ss0['Z']],
-        ['Inflation', ss0['pi'], 'Consumption tax revenue', ss0['tauc'] * ss0['C']],
-        ['Nominal interest rate', ss0['r']*(1+ss0['pi']), 'Labor tax revenue', ss0['taun']*ss0['N']*ss0['w']],
-        ['Real interest rate', ss0['r'], 'Debt servicing  cost', ss0['r'] * ss0['A']]]
-ss_mkt = [['Bond market', ss0['asset_mkt'], 'Goods market (resid)', ss0['goods_mkt']],
-          ['Government budget', ss0['govt_res'], '', float('nan')]]
+# ss_var = [['Output', ss0['Y'], 'Government debt', ss0['A']],
+#         ['Consumption', ss0['C'], 'Transfers', ss0['Tau']],
+#         ['Hours', ss0['N'], 'Dividends', ss0['Div']], 
+#         ['Wage', ss0['w'], 'Marginal cost', ss0['w'] / ss0['Z']],
+#         ['Inflation', ss0['pi'], 'Consumption tax revenue', ss0['tauc'] * ss0['C']],
+#         ['Nominal interest rate', ss0['r']*(1+ss0['pi']), 'Labor tax revenue', ss0['taun']*ss0['N']*ss0['w']],
+#         ['Real interest rate', ss0['r'], 'Debt servicing  cost', ss0['r'] * ss0['A']]]
+# ss_mkt = [['Bond market', ss0['asset_mkt'], 'Goods market (resid)', ss0['goods_mkt']],
+#           ['Government budget', ss0['govt_res'], '', float('nan')]]
 
-dash = '-' * 73
-print(dash)
-print('PARAMETERS')
-for i in range(len(ss_param)):
-      print('{:<24s}{:>12.3f}   {:24s}{:>10.3f}'.format(ss_param[i][0],ss_param[i][1],ss_param[i][2],ss_param[i][3]))
-print('\nVARIABLES')
-for i in range(len(ss_var)):
-      print('{:<24s}{:>12.3f}   {:24s}{:>10.3f}'.format(ss_var[i][0],ss_var[i][1],ss_var[i][2],ss_var[i][3]))
-print('\nMARKET CLEARING')
-for i in range(len(ss_mkt)):
-      print('{:<24s}{:>12.0e}   {:24s}{:>10.0e}'.format(ss_mkt[i][0],ss_mkt[i][1],ss_mkt[i][2],ss_mkt[i][3]))
-print(dash)
+# dash = '-' * 73
+# print(dash)
+# print('PARAMETERS')
+# for i in range(len(ss_param)):
+#       print('{:<24s}{:>12.3f}   {:24s}{:>10.3f}'.format(ss_param[i][0],ss_param[i][1],ss_param[i][2],ss_param[i][3]))
+# print('\nVARIABLES')
+# for i in range(len(ss_var)):
+#       print('{:<24s}{:>12.3f}   {:24s}{:>10.3f}'.format(ss_var[i][0],ss_var[i][1],ss_var[i][2],ss_var[i][3]))
+# print('\nMARKET CLEARING')
+# for i in range(len(ss_mkt)):
+#       print('{:<24s}{:>12.0e}   {:24s}{:>10.0e}'.format(ss_mkt[i][0],ss_mkt[i][1],ss_mkt[i][2],ss_mkt[i][3]))
+# print(dash)
 
 print("Time elapsed: %s seconds" % (round(time.time() - start_time, 0)))
