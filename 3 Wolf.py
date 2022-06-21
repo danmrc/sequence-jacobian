@@ -285,8 +285,15 @@ for i in range(len(ss_var_rstar)):
 # =============================================================================
 
 rhos = 0.9
-dtau = 0.01 * rhos ** np.arange(T)
+#dtau = 0.01 * rhos ** np.arange(T)
 drstar = -0.0025 * rhos ** np.arange(T)
+
+dtau = np.zeros(T)
+discount = (1 / (1 + ss_tau['r']))
+A, B, C, D, E = 1, 0.5, 0.19499, 5, 3
+for x in range(T):
+    dtau[x] = discount ** x * (A - B * (x - E)) * np.exp(-C * (x - E) - D)
+    
 
 dY = [G_tau['Y']['Tau'] @ dtau, G_rstar['Y']['rstar'] @ drstar]
 dC = [G_tau['C']['Tau'] @ dtau, G_rstar['C']['rstar'] @ drstar]
