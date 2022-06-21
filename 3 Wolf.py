@@ -75,6 +75,13 @@ def monetary(pi, rstar, phi_pi):
     return r, i
 
 @simple
+def monetary2(pi, rstar, phi_pi,r_ss):
+    r = (1 + rstar(-1) + phi_pi * pi(-1)) / (1 + pi) - 1
+    i = rstar
+    r_resid = r - r_ss
+    return r, i, r_resid
+
+@simple
 def fiscal(r, Tau, B, C, N, tauc, taun, w):
     govt_res = Tau + (1 + r) * B(-1) - tauc * C - taun * w * N - B
     Deficit = Tau - tauc * C - taun * w * N # primary deficit
@@ -82,13 +89,14 @@ def fiscal(r, Tau, B, C, N, tauc, taun, w):
     return govt_res, Deficit, Trans
 
 @simple
-def fiscal2(B, N, r, rhot, Tau, tauc, taun, w):
+def fiscal2(B, N, r, rhot, Tau, tauc, taun, w,B_ss, r_ss):
     # Tau = taun * w * N + B - (1 + r) * B(-1) # immediate adjustment of transfers, no tauc
     # B = (1 + r) * B(-1) 
-    govt_res = Tau - rhot * Tau(-1) - (1 - rhot) * (taun * w * N + B - (1 + r) * B(-1)) # delayed adjustment of transfers
+    govt_res = Tau - (taun * w * N + B - (1 + r) * B(-1))
     Deficit = Tau - taun * w * N # primary deficit, no tauc
+    fiscal_rule = (B - B_ss) -(B(-1) - B_ss) - rhot*(r - r_ss)  # delayed adjustment of transfers
     Trans = Tau
-    return Deficit, Trans, govt_res
+    return Deficit, Trans, govt_res, fiscal_rule
 
 @simple
 def mkt_clearing(A, C, Y, B, pi, mu, kappa):
@@ -205,14 +213,14 @@ print("Done")
 print("MODEL 2: INTEREST RATE POLICY")
 
 # Steady state 
-blocks_ss_rstar = [hh_inp, firm, monetary, fiscal2, mkt_clearing, nkpc_ss, union_ss]
+blocks_ss_rstar = [hh_inp, firm, monetary2, fiscal2, mkt_clearing, nkpc_ss, union_ss]
 hank_ss_rstar = create_model(blocks_ss_rstar, name = "One-Asset HANK SS")
 calib_rstar = {'gamma': 1.0, 'nu': 2.0, 'rho_e': 0.966, 'sd_e': 0.5, 'nE': 8,
                'amin': 0, 'amax': 150, 'nA': 500, 'Y': 1.0, 'Z': 1.0, 'pi': 0.0,
                'mu': 1.2, 'kappa': 0.1, 'rstar': 0.005, 'phi_pi': 1.5, 'B': 6.0,
-               'kappaw': 0.003, 'muw': 1.2, 'N': 1.0, 'tauc': 0.0, 'taun': 0.036, 'rhot': 0.0}
-unknowns_ss_rstar = {'beta': 0.986, 'Tau': -0.03}
-targets_ss_rstar = {'asset_mkt': 0, 'govt_res': 0}
+               'kappaw': 0.003, 'muw': 1.2, 'N': 1.0, 'tauc': 0.0, 'taun': 0.036, 'rhot': 1.0}
+unknowns_ss_rstar = {'beta': 0.986, 'Tau': -0.03, 'B_ss': 6.0,'r_ss':0.005}
+targets_ss_rstar = {'asset_mkt': 0, 'govt_res': 0, 'fiscal_rule': 0, 'r_resid':0}
 # unknowns_ss_rstar = {'beta': 0.986}
 # targets_ss_rstar = {'asset_mkt': 0}
 print("Computing steady state...")
@@ -220,13 +228,13 @@ ss0_rstar = hank_ss_rstar.solve_steady_state(calib_rstar, unknowns_ss_rstar, tar
 print("Done")
 
 # Dynamic model
-blocks_rstar = [hh_inp, firm, monetary, fiscal2, mkt_clearing, nkpc,wage,union]
+blocks_rstar = [hh_inp, firm, monetary2, fiscal2, mkt_clearing, nkpc,wage,union]
 hank_rstar = create_model(blocks_rstar, name = "One-Asset HANK")
 ss_rstar = hank_rstar.steady_state(ss0_rstar)
 T = 300
 exogenous_rstar = ['rstar', 'Z']
-unknowns_rstar = ['pi', 'w', 'Y', 'Tau']
-targets_rstar = ['nkpc_res', 'asset_mkt', 'wnkpc', 'govt_res']
+unknowns_rstar = ['pi', 'w', 'Y', 'B','Tau']
+targets_rstar = ['nkpc_res', 'asset_mkt', 'wnkpc', 'govt_res','fiscal_rule']
 # unknowns_rstar = ['pi', 'w', 'Y']
 # targets_rstar = ['nkpc_res', 'asset_mkt', 'wnkpc']
 print("Computing Jacobian...")
