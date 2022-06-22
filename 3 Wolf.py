@@ -12,6 +12,13 @@ import matplotlib.pyplot as plt
 from sequence_jacobian import het, simple, create_model             # functions
 from sequence_jacobian import interpolate, grids, misc, estimation  # modules
 
+def chebyschev_grid(amin, amax, n): # see Judd(1998, p. 223)
+    grid = np.linspace(1, n, num=n)
+    cheby_node = -np.cos((2 * grid - 1) / (2 * n) * np.pi)
+    adj_node = (cheby_node + 1) * (amax - amin) / 2 + amin
+    return adj_node
+
+# Household heterogeneous block
 def household_guess(a_grid, r, z_grid, gamma, T, tauc):
     new_z = np.ones((z_grid.shape[0],1))
     wel = (1 + r) * a_grid[np.newaxis,:] + new_z + T[:,np.newaxis]
@@ -43,7 +50,8 @@ def income(e_grid, w, N, taun):
 
 def make_grid(rho_e, sd_e, nE, amin, amax, nA):
     e_grid, pi_e, Pi = grids.markov_rouwenhorst(rho=rho_e, sigma=sd_e, N=nE)
-    a_grid = grids.agrid(amin=amin, amax=amax, n=nA)
+    a_grid = grids.agrid(amin=amin, amax=amax, n=nA) # original grid used by Auclert et al
+    # a_grid = chebyschev_grid(amin=amin, amax=amax, n=nA) # Chebyshev grid
     return e_grid, Pi, a_grid, pi_e
 
 def transfers(pi_e, Div, Tau, e_grid):
@@ -55,13 +63,9 @@ def transfers(pi_e, Div, Tau, e_grid):
     T = div + tau
     return T
 
-# # Dividend rule, tests
-# e_test = np.zeros(8)
-# e_test[4:8] = 2
-# print(np.sum(pi_e * e_test))
-
 hh_inp = household.add_hetinputs([make_grid,transfers,income])
 
+# Simple blocks
 @simple
 def firm(Y, w, Z, pi, mu, kappa):
     N = Y / Z
@@ -75,7 +79,7 @@ def monetary(pi, rstar, phi_pi):
     return r, i
 
 @simple
-def monetary2(pi, rstar, phi_pi,r_ss):
+def monetary2(pi, rstar, phi_pi, r_ss):
     r = (1 + rstar(-1) + phi_pi * pi(-1)) / (1 + pi) - 1
     i = rstar
     r_resid = r - r_ss
@@ -89,12 +93,12 @@ def fiscal(r, Tau, B, C, N, tauc, taun, w):
     return govt_res, Deficit, Trans
 
 @simple
-def fiscal2(B, N, r, rhot, Tau, tauc, taun, w,B_ss, r_ss):
+def fiscal2(B, N, r, rhot, Tau, tauc, taun, w, B_ss, r_ss):
     # Tau = taun * w * N + B - (1 + r) * B(-1) # immediate adjustment of transfers, no tauc
-    # B = (1 + r) * B(-1) 
-    govt_res = Tau - (taun * w * N + B - (1 + r) * B(-1))
+    govt_res = Tau - (taun * w * N + B - (1 + r) * B(-1)) 
+    # govt_res = Tau - rhot * Tau(-1) - (1 - rhot) * (taun * w * N + B - (1 + r) * B(-1)) # delayed adjustment of transfers
     Deficit = Tau - taun * w * N # primary deficit, no tauc
-    fiscal_rule = (B - B_ss) -(B(-1) - B_ss) - rhot*(r - r_ss)  # delayed adjustment of transfers
+    fiscal_rule = (B - B_ss) - (B(-1) - B_ss) - rhot * (r - r_ss)  # delayed adjustment of transfers
     Trans = Tau
     return Deficit, Trans, govt_res, fiscal_rule
 
@@ -184,9 +188,9 @@ print("\nMODEL 1: TRANSFER POLICY")
 blocks_ss_tau = [hh_inp, firm, monetary, fiscal, mkt_clearing, nkpc_ss, union_ss]
 hank_ss_tau = create_model(blocks_ss_tau, name="One-Asset HANK SS")
 calib_tau = {'gamma': 1.0, 'nu': 2.0, 'rho_e': 0.966, 'sd_e': 0.5, 'nE': 8,
-               'amin': 0, 'amax': 150, 'nA': 500, 'Y': 1.0, 'Z': 1.0, 'pi': 0.0,
+               'amin': 0, 'amax': 150, 'nA': 50, 'Y': 1.0, 'Z': 1.0, 'pi': 0.0,
                'mu': 1.2, 'kappa': 0.1, 'rstar': 0.005, 'phi_pi': 0.0, 'B': 6.0,
-               'kappaw': 0.003, 'muw': 1.2, 'N': 1.0, 'tauc': 0.0, 'taun': 0.036}
+               'kappaw': 0.006, 'muw': 1.2, 'N': 1.0, 'tauc': 0.0, 'taun': 0.036}
 unknowns_ss_tau = {'beta': 0.986, 'Tau': -0.03}
 targets_ss_tau = {'asset_mkt': 0, 'govt_res': 0}
 print("Computing steady state...")
@@ -216,13 +220,13 @@ print("MODEL 2: INTEREST RATE POLICY")
 blocks_ss_rstar = [hh_inp, firm, monetary2, fiscal2, mkt_clearing, nkpc_ss, union_ss]
 hank_ss_rstar = create_model(blocks_ss_rstar, name = "One-Asset HANK SS")
 calib_rstar = {'gamma': 1.0, 'nu': 2.0, 'rho_e': 0.966, 'sd_e': 0.5, 'nE': 8,
-               'amin': 0, 'amax': 150, 'nA': 500, 'Y': 1.0, 'Z': 1.0, 'pi': 0.0,
+               'amin': 0, 'amax': 150, 'nA': 50, 'Y': 1.0, 'Z': 1.0, 'pi': 0.0,
                'mu': 1.2, 'kappa': 0.1, 'rstar': 0.005, 'phi_pi': 1.5, 'B': 6.0,
-               'kappaw': 0.003, 'muw': 1.2, 'N': 1.0, 'tauc': 0.0, 'taun': 0.036, 'rhot': 1.0}
-unknowns_ss_rstar = {'beta': 0.986, 'Tau': -0.03, 'B_ss': 6.0,'r_ss':0.005}
-targets_ss_rstar = {'asset_mkt': 0, 'govt_res': 0, 'fiscal_rule': 0, 'r_resid':0}
-# unknowns_ss_rstar = {'beta': 0.986}
-# targets_ss_rstar = {'asset_mkt': 0}
+               'kappaw': 0.006, 'muw': 1.2, 'N': 1.0, 'tauc': 0.0, 'taun': 0.036, 'rhot': 0.0}
+# unknowns_ss_rstar = {'beta': 0.986, 'Tau': -0.03}
+# targets_ss_rstar = {'asset_mkt': 0, 'govt_res': 0}
+unknowns_ss_rstar = {'beta': 0.986, 'Tau': -0.03, 'B_ss': 6.0, 'r_ss': 0.005}
+targets_ss_rstar = {'asset_mkt': 0, 'govt_res': 0, 'fiscal_rule': 0, 'r_resid': 0}
 print("Computing steady state...")
 ss0_rstar = hank_ss_rstar.solve_steady_state(calib_rstar, unknowns_ss_rstar, targets_ss_rstar, backward_tol=1E-22, solver="hybr")
 print("Done")
@@ -233,10 +237,10 @@ hank_rstar = create_model(blocks_rstar, name = "One-Asset HANK")
 ss_rstar = hank_rstar.steady_state(ss0_rstar)
 T = 300
 exogenous_rstar = ['rstar', 'Z']
-unknowns_rstar = ['pi', 'w', 'Y', 'B','Tau']
-targets_rstar = ['nkpc_res', 'asset_mkt', 'wnkpc', 'govt_res','fiscal_rule']
-# unknowns_rstar = ['pi', 'w', 'Y']
-# targets_rstar = ['nkpc_res', 'asset_mkt', 'wnkpc']
+# unknowns_rstar = ['pi', 'w', 'Y', 'Tau']
+# targets_rstar = ['nkpc_res', 'asset_mkt', 'wnkpc', 'govt_res']
+unknowns_rstar = ['pi', 'w', 'Y', 'B', 'Tau']
+targets_rstar = ['nkpc_res', 'asset_mkt', 'wnkpc', 'govt_res', 'fiscal_rule']
 print("Computing Jacobian...")
 G_rstar = hank_rstar.solve_jacobian(ss_rstar, unknowns_rstar, targets_rstar, exogenous_rstar, T=T)
 print("Done")
@@ -292,16 +296,18 @@ for i in range(len(ss_var_rstar)):
 # Impulse response functions
 # =============================================================================
 
-rhos = 0.9
-#dtau = 0.01 * rhos ** np.arange(T)
-drstar = -0.0025 * rhos ** np.arange(T)
+# Standard shock
+rhos = 0.78
+# dtau = 0.01 * rhos ** np.arange(T)
+drstar = -0.002 * rhos ** np.arange(T)
 
-dtau = np.zeros(T)
+# Zero net present value sock
 discount = (1 / (1 + ss_tau['r']))
-A, B, C, D, E = 1, 0.5, 0.19499, 5, 3
+shock = np.zeros(T)
+s1, s2, s3, s4, s5 = 1, 0.5, 0.19499, 5, 3
 for x in range(T):
-    dtau[x] = discount ** x * (A - B * (x - E)) * np.exp(-C * (x - E) - D)
-    
+    shock[x] = discount ** x * (s1 - s2 * (x - s5)) * np.exp(-s3 * (x - s5) - s4) 
+dtau = shock
 
 dY = [G_tau['Y']['Tau'] @ dtau, G_rstar['Y']['rstar'] @ drstar]
 dC = [G_tau['C']['Tau'] @ dtau, G_rstar['C']['rstar'] @ drstar]
@@ -336,6 +342,7 @@ ax[0, 2].plot(dB[1][:iT],'-.')
 ax[0, 3].set_title(r'Transfer $\tau$')
 ax[0, 3].plot(dT[0][:iT])
 ax[0, 3].plot(dT[1][:iT],'-.')
+ax[0, 3].plot([0, iT], [0, 0], '--', color='gray', linewidth=0.5)
 
 ax[1, 0].set_title(r'Wage $w$')
 ax[1, 0].plot(dw[0][:iT])
@@ -459,7 +466,7 @@ V_prime_p_rstar = (1 + r_ss_rstar) / (1 + tauc) * c_ss_rstar ** (-gamma)
 c_direct_rstar = np.zeros((nE, nA, T))
 for t in range(T-1, -1, -1):
     V_prime_p_rstar, _, c, _ = iterate_h(household_d, V_prime_p_rstar, Pi_rstar, a_grid_rstar, w_ss_rstar, N_ss_rstar, taun, pi_e_rstar, 
-                                          e_grid_rstar, path_r_rstar[t], Div_ss_rstar, path_tau_rstar[t], beta, gamma, tauc)
+                                          e_grid_rstar, path_r_rstar[t], Div_ss_rstar, Tau_ss_rstar, beta, gamma, tauc)
     c_direct_rstar[:, :, t] = c  
 print("Done")
 
@@ -478,45 +485,85 @@ for i in range(nA):
     c_first_tau_direct[i] = (c_first_dev_tau_direct[:, i] @ D_ss_tau[:, i]) / np.sum(D_ss_tau[:,i])
     c_first_rstar[i] = (c_first_dev_rstar[:, i] @ D_ss_rstar[:, i]) / np.sum(D_ss_rstar[:,i])
     c_first_rstar_direct[i] = (c_first_dev_rstar_direct[:, i] @ D_ss_rstar[:, i]) / np.sum(D_ss_rstar[:,i])
-    
-# Different weighting
-# c_first_tau = np.sum(c_first_dev_tau, axis=1)
-# c_first_rstar = np.sum(c_first_dev_rstar, axis=1)  
-         
-# Pool into percentile bins
-c_first_bin_tau = c_first_tau.reshape(-1, 100, order='F').mean(axis=0)
-c_first_bin_tau_direct = c_first_tau_direct.reshape(-1, 100, order='F').mean(axis=0) 
-c_first_bin_tau_indirect = c_first_bin_tau - c_first_bin_tau_direct
-c_first_bin_rstar = c_first_rstar.reshape(-1, 100, order='F').mean(axis=0)  
-c_first_bin_rstar_direct = c_first_rstar_direct.reshape(-1, 100, order='F').mean(axis=0) 
-c_first_bin_rstar_indirect = c_first_bin_rstar - c_first_bin_rstar_direct
+
+c_first_tau_indirect = c_first_tau - c_first_tau_direct
+c_first_rstar_indirect = c_first_rstar - c_first_rstar_direct
+
+# # Pool into percentile bins
+# c_first_bin_tau = c_first_tau.reshape(-1, 100, order='F').mean(axis=0)
+# c_first_bin_tau_direct = c_first_tau_direct.reshape(-1, 100, order='F').mean(axis=0) 
+# c_first_bin_tau_indirect = c_first_bin_tau - c_first_bin_tau_direct
+# c_first_bin_rstar = c_first_rstar.reshape(-1, 100, order='F').mean(axis=0)  
+# c_first_bin_rstar_direct = c_first_rstar_direct.reshape(-1, 100, order='F').mean(axis=0) 
+# c_first_bin_rstar_indirect = c_first_bin_rstar - c_first_bin_rstar_direct
+
+# Smoothing function
+import scipy as sp
+def kernel_smoothing(vec, bandwidth):
+    n = np.size(vec)
+    result = np.zeros(n)
+    for i in range(n):
+        kernel = sp.stats.norm(vec[i], bandwidth)
+        weights = kernel.pdf(vec)
+        weights = weights/np.sum(weights)
+        result[i] = weights @ vec
+    return result
+
+# # Smooth curves
+# bandwith = 0.00
+# c_first_bin_tau = kernel_smoothing(c_first_bin_tau, bandwith)
+# c_first_bin_tau_direct = kernel_smoothing(c_first_bin_tau, bandwith)
+# c_first_bin_tau_indirect = kernel_smoothing(c_first_bin_tau, bandwith)
+# c_first_bin_rstar = kernel_smoothing(c_first_bin_tau, bandwith)
+# c_first_bin_rstar_direct = kernel_smoothing(c_first_bin_tau, bandwith)
+# c_first_bin_rstar_indirect = kernel_smoothing(c_first_bin_tau, bandwith)
+
+# First quantile
+D_ss_quant = 100 * np.cumsum(np.sum(D_ss_tau, axis=0))
+
+# First percentile
+D_ss_quant = np.append(0, D_ss_quant)
+c_first_tau_direct = np.append(c_first_tau_direct[0], c_first_tau_direct)
+c_first_tau_indirect =  np.append(c_first_tau_indirect[0], c_first_tau_indirect)
+c_first_rstar_direct = np.append(c_first_rstar_direct[0], c_first_rstar_direct)
+c_first_rstar_indirect =  np.append(c_first_rstar_indirect[0], c_first_rstar_indirect)
  
 # Plot results
 color_map = ["#FFFFFF", "#D95319"] # myb: "#0072BD"
 fig, ax = plt.subplots(1,2)
 ax[0].set_title(r'Interest rate policy')
-ax[0].plot(c_first_bin_rstar_direct, label="Direct effect", linewidth=3)  
-ax[0].stackplot(range(100), c_first_bin_rstar_direct, c_first_bin_rstar_indirect, colors=color_map, labels=["", "+ GE"], alpha=0.5)  
+ax[0].plot(D_ss_quant, 100 * c_first_rstar_direct, label="Direct effect", linewidth=3)  
+ax[0].stackplot(D_ss_quant, 100 * c_first_rstar_direct, 100 * c_first_rstar_indirect, colors=color_map, labels=["", "+ GE"], alpha=0.5)  
 # ax[0].plot(c_first_bin_rstar_indirect, label="indirect effect") 
 ax[0].legend(loc='upper left', frameon=False)
 ax[0].set_xlabel("Wealth percentile"), ax[0].set_ylabel("Percent deviation from steady state")
 
 ax[1].set_title(r'Transfer policy')
-ax[1].plot(c_first_bin_tau_direct, label="direct effect", linewidth=3)    
-ax[1].stackplot(range(100), c_first_bin_tau_direct, c_first_bin_tau_indirect, colors=color_map, labels=["", "+ GE"], alpha=0.5)   
-ax[1].legend(loc='upper left', frameon=False)
+ax[1].plot(D_ss_quant, 100 * c_first_tau_direct, label="Direct effect", linewidth=3)    
+ax[1].stackplot(D_ss_quant, 100 * c_first_tau_direct, 100 * c_first_tau_indirect, colors=color_map, labels=["", "+ GE"], alpha=0.5)   
+ax[1].legend(loc='upper right', frameon=False)
 ax[1].set_xlabel("Wealth percentile")
 plt.show()
      
+# # plot results
+# plt.title(r'impact response of consumption $c$ to transfer policy versus interest rate policy')
+# plt.plot(c_first_tau * 100, label="transfer policy")
+# plt.plot(c_first_rstar * 100,'-.', label="interest rate policy")
+# # plt.legend(loc='upper right', frameon=false)
+# plt.xlabel("wealth percentile"), plt.ylabel("percent deviation from steady state")
+# plt.show()
 
 
-# plot results
-plt.title(r'impact response of consumption $c$ to transfer policy versus interest rate policy')
-plt.plot(c_first_tau * 100, label="transfer policy")
-plt.plot(c_first_rstar * 100,'-.', label="interest rate policy")
-# plt.legend(loc='upper right', frameon=false)
-plt.xlabel("wealth percentile"), plt.ylabel("percent deviation from steady state")
-plt.show()
+# =============================================================================
+# Individual vs aggregate impact responses
+# =============================================================================
+
+c_agg_tau_tot = dC[0][0] / ss_tau['C'] * 100
+c_tau_tot = np.sum(c_all_tau[:, :, 0] * D_ss_tau) * 100
+c_dev_tau_tot = np.sum((c_all_tau[:, :, 0] - c_ss_tau) * D_ss_tau) * 100 # absolute deviation from ss
+c_dev_tau_tot = np.sum((c_all_tau[:, :, 0] - c_ss_tau) / c_ss_tau * D_ss_tau) * 100 # percent deviation from ss
+print("Aggregate impact consumption response              = ", round(c_agg_tau_tot, 3), "%")
+print("Sum of all individual impact consumption responses = ", round(c_dev_tau_tot, 3), "%")
 
 
 
