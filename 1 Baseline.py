@@ -128,8 +128,7 @@ def nkpc_ss(mu, Z):
 
 @simple
 def nkpc(kappa, mu, pi, r, w, Y, Z):
-    nkpc_res = kappa * (w / Z - 1 / mu) + Y(+1) / Y * (1 + pi(+1)).apply(np.log) / (1 + r(+1))\
-               - (1 + pi).apply(np.log)
+    nkpc_res = kappa * (w / Z - 1 / mu) + Y(+1) / Y * (1 + pi(+1)).apply(np.log) / (1 + r(+1)) - (1 + pi).apply(np.log)
     return nkpc_res
 
 
@@ -182,15 +181,15 @@ def iterate_h(foo, V_prime_start, Pi, pi_e, a_grid, e_grid, beta, gamma, nu, phi
 # =============================================================================
 
 # Steady state
-blocks_ss = [hh_ext, firm, monetary,fiscal, nkpc_ss, mkt_clearing]
+blocks_ss = [hh_ext, firm, monetary, fiscal, nkpc_ss, mkt_clearing]
 hank_ss = create_model(blocks_ss, name="One-Asset HANK SS")
 
-calibration = {'gamma': 1.0, 'nu': 2.0, 'rho_e': 0.966, 'sd_e': 0.5, 'nE': 8,
-               'amin': 0, 'amax': 200, 'nA': 100, 'Y': 1.0, 'Z': 1.0, 'pi': 0.0,
+calibration = {'gamma': 1.0, 'nu': 2.0, 'rho_e': 0.97, 'sd_e': 0.5, 'nE': 8,
+               'amin': 0, 'amax': 200, 'nA': 50, 'Y': 1.0, 'Z': 1.0, 'pi': 0.0,
                'mu': 1.2, 'kappa': 0.1, 'rstar': 0.005, 'phi_pi': 0.0, 'B': 6.0, 
                'tauc': 0.1, 'taun': 0.036}
 
-unknowns_ss = {'beta': 0.986, 'phi': 0.8, 'Tau': 0.05}
+unknowns_ss = {'beta': 0.986, 'phi': 0.75, 'Tau': 0.10}
 targets_ss = {'asset_mkt': 0, 'labor_mkt': 0, 'govt_res': 0}
 print("Computing steady state...", end=" ")
 ss0 = hank_ss.solve_steady_state(calibration, unknowns_ss, targets_ss, solver="hybr")
@@ -419,7 +418,7 @@ di = [np.zeros(T), np.zeros(T), G['i']['rstar'] @ drstar]
 
 plt.rcParams["figure.figsize"] = (20,7)
 fig, ax = plt.subplots(2, 4)
-fig.suptitle('Consumption tax cut versus transfer increase, baseline model', size=16)
+fig.suptitle('Response to different policies, HANK', size=16)
 iT = 30
 
 ax[0, 0].set_title(r'Output $Y$')
@@ -621,29 +620,29 @@ n_first_tau_indirect =  np.append(n_first_tau_indirect[0], n_first_tau_indirect)
 # Plot results
 color_map = ["#FFFFFF", "#D95319"] # myb: "#0072BD"
 plt.rcParams["figure.figsize"] = (20,7)
-fig, ax = plt.subplots(1, 4)
+fig, ax = plt.subplots(1, 2)
 ax[0].set_title(r'Tax policy: consumption')
 ax[0].plot(D_ss_quant, 100 * c_first_tauc_direct, label="Direct effect", linewidth=3)  
-# ax[0].stackplot(D_ss_quant, 100 * c_first_tauc_direct, 100 * c_first_tauc_indirect, colors=color_map, labels=["", "+ GE"], alpha=0.5)  
-ax[0].legend(loc='upper right', frameon=False)
+ax[0].stackplot(D_ss_quant, 100 * c_first_tauc_direct, 100 * c_first_tauc_indirect, colors=color_map, labels=["", "+ GE"], alpha=0.5)  
+ax[0].legend(loc='upper left', frameon=False)
 ax[0].set_ylabel("Percent deviation from steady state")
 
 ax[1].set_title(r'Transfer policy: consumption')
 ax[1].plot(D_ss_quant, 100 * c_first_tau_direct, label="Direct effect", linewidth=3)    
-# ax[1].stackplot(D_ss_quant, 100 * c_first_tau_direct, 100 * c_first_tau_indirect, colors=color_map, labels=["", "+ GE"], alpha=0.5)   
-ax[1].legend(loc='upper right', frameon=False)
+ax[1].stackplot(D_ss_quant, 100 * c_first_tau_direct, 100 * c_first_tau_indirect, colors=color_map, labels=["", "+ GE"], alpha=0.5)   
+ax[1].legend(loc='upper left', frameon=False)
 
-ax[2].set_title(r'Tax policy: labor supply')
-ax[2].plot(D_ss_quant, 100 * n_first_tauc_direct, label="Direct effect", linewidth=3)  
+# ax[2].set_title(r'Tax policy: labor supply')
+# ax[2].plot(D_ss_quant, 100 * n_first_tauc_direct, label="Direct effect", linewidth=3)  
 # ax[2].stackplot(D_ss_quant, 100 * n_first_tauc_direct, 100 * n_first_tauc_indirect, colors=color_map, labels=["", "+ GE"], alpha=0.5)  
-ax[2].legend(loc='upper left', frameon=False)
-ax[2].set_xlabel("Wealth percentile"), ax[2].set_ylabel("Percent deviation from steady state")
+# ax[2].legend(loc='upper left', frameon=False)
+# ax[2].set_xlabel("Wealth percentile"), ax[2].set_ylabel("Percent deviation from steady state")
 
-ax[3].set_title(r'Transfer policy: labor supply')
-ax[3].plot(D_ss_quant, 100 * n_first_tau_direct, label="Direct effect", linewidth=3)    
+# ax[3].set_title(r'Transfer policy: labor supply')
+# ax[3].plot(D_ss_quant, 100 * n_first_tau_direct, label="Direct effect", linewidth=3)    
 # ax[3].stackplot(D_ss_quant, 100 * n_first_tau_direct, 100 * n_first_tau_indirect, colors=color_map, labels=["", "+ GE"], alpha=0.5)   
-ax[3].legend(loc='upper left', frameon=False)
-ax[3].set_xlabel("Wealth percentile")
+# ax[3].legend(loc='upper left', frameon=False)
+# ax[3].set_xlabel("Wealth percentile")
 plt.show()
 
 # fig, ax = plt.subplots(1,2)
@@ -665,6 +664,98 @@ c_dev_tau_tot = np.sum((c_all_tauc[:, :, 0] - c_ss) * D_ss) * 100 # absolute dev
 c_dev_tau_tot = np.sum((c_all_tauc[:, :, 0] - c_ss) / c_ss * D_ss) * 100 # percent deviation from ss
 print("Aggregate impact consumption response              = ", round(c_agg_tau_tot, 3), "%")
 print("Sum of all individual impact consumption responses = ", round(c_dev_tau_tot, 3), "%")
+
+
+# # =============================================================================
+# # Dynamic response by quantile
+# # =============================================================================
+
+# # Express as deviation from steady state
+# c_all_dev_tauc = (c_all_tauc - c_ss[:, :, None]) / c_ss[:, :, None]
+# n_all_dev_tauc = (n_all_tauc - n_ss[:, :, None]) / n_ss[:, :, None]
+# c_all_dev_tau = (c_all_tau - c_ss[:, :, None]) / c_ss[:, :, None]
+# n_all_dev_tau = (n_all_tau - n_ss[:, :, None]) / n_ss[:, :, None]
+
+# # # Test
+# # c_all_dev_tauc = (c_all_tauc - c_ss[:, :, None])
+# # n_all_dev_tauc = (c_all_tauc - c_ss[:, :, None])
+# # c_all_dev_tau = (c_all_tauc - c_ss[:, :, None])
+# # n_all_dev_tau = (c_all_tauc - c_ss[:, :, None])
+
+# # Weigh response by mass of agents
+# c_allw_tauc, n_allw_tauc, c_allw_tau, n_allw_tau = (np.zeros((nA, T)), np.zeros((nA, T)), 
+#                                                         np.zeros((nA, T)), np.zeros((nA, T)))
+# for i in range(nA):
+#     for t in range(T):
+#         c_allw_tauc[i, t] = c_all_dev_tauc[:, i, t] @ D_ss[:, i, None]
+#         n_allw_tauc[i, t] = n_all_dev_tauc[:, i, t] @ D_ss[:, i, None]
+#         c_allw_tau[i, t] = c_all_dev_tau[:, i, t] @ D_ss[:, i, None]
+#         n_allw_tau[i, t] = n_all_dev_tau[:, i, t] @ D_ss[:, i, None]
+     
+# # Find quartile positions and pool responses into quartiles
+# D_dist = np.sum(D_ss, axis=0)
+# D_pct = np.percentile(D_dist, (25, 50, 75, 100))
+# D_pos = np.searchsorted(D_dist, D_pct)
+
+# c_all_tauc_q1 = c_allw_tauc[D_pos[0], :]
+# c_all_tauc_q2 = c_allw_tauc[D_pos[0]+1:D_pos[1], :].sum(axis=0)
+# c_all_tauc_q3 = c_allw_tauc[D_pos[1]+1:D_pos[2], :].sum(axis=0)
+# c_all_tauc_q4 = c_allw_tauc[D_pos[2]+1:D_pos[3], :].sum(axis=0)
+
+# c_all_tau_q1 = c_allw_tau[D_pos[0], :]
+# c_all_tau_q2 = c_allw_tau[D_pos[0]+1:D_pos[1], :].sum(axis=0)
+# c_all_tau_q3 = c_allw_tau[D_pos[1]+1:D_pos[2], :].sum(axis=0)
+# c_all_tau_q4 = c_allw_tau[D_pos[2]+1:D_pos[3], :].sum(axis=0)
+
+# # Pool into percentiles
+# # c_all_bin_tauc = c_allw_tauc.reshape((5, 100, 300), order='F').sum(axis=0)
+# # n_all_bin_tauc = n_allw_tauc.reshape((5, 100, 300), order='F').sum(axis=0)
+# # c_all_bin_tau = c_allw_tau.reshape((5, 100, 300), order='F').sum(axis=0)
+# # n_all_bin_tau = n_allw_tau.reshape((5, 100, 300), order='F').sum(axis=0)
+
+# # Pool into quartiles PROBABLY WRONG
+# c_all_bin_tauc = c_allw_tauc.reshape((125, 4, 300), order='F').sum(axis=0)
+# n_all_bin_tauc = n_allw_tauc.reshape((125, 4, 300), order='F').sum(axis=0)
+# c_all_bin_tau = c_allw_tau.reshape((125, 4, 300), order='F').sum(axis=0)
+# n_all_bin_tau = n_allw_tau.reshape((125, 4, 300), order='F').sum(axis=0)     
+
+# # Plot results
+# plt.rcParams["figure.figsize"] = (18,7)
+# fig, ax = plt.subplots(1,2)
+# ax[0].set_title(r'Consumption response after consumption tax policy')
+# ax[0].plot(c_all_tauc_q1[0:22] * 100, label="Quartile 1")
+# ax[0].plot(c_all_tauc_q2[0:22] * 100, label="Quartile 2")
+# ax[0].plot(c_all_tauc_q3[0:22] * 100, label="Quartile 3")
+# ax[0].plot(c_all_tauc_q4[0:22] * 100, label="Quartile 4")
+# # ax[0].plot(c_all_bin_tauc[4, 0:22] * 100, label="Quintile 5")
+# ax[0].legend(loc='upper right', frameon=False)
+
+# ax[1].set_title(r'Consumption response after transfer policy')
+# ax[1].plot(c_all_tau_q1[0:22] * 100, label="Quartile 1")
+# ax[1].plot(c_all_tau_q2[0:22] * 100, label="Quartile 2")
+# ax[1].plot(c_all_tau_q3[0:22] * 100, label="Quartile 3")
+# ax[1].plot(c_all_tau_q4[0:22] * 100, label="Quartile 4")
+# ax[1].legend(loc='upper right', frameon=False)
+# plt.show()
+
+
+# fig, ax = plt.subplots(1,2)
+# ax[0].set_title(r'Consumption response after consumption tax policy')
+# ax[0].plot(c_all_bin_tauc[0, 0:22] * 100, label="Quartile 1")
+# ax[0].plot(c_all_bin_tauc[1, 0:22] * 100, label="Quartile 2")
+# ax[0].plot(c_all_bin_tauc[2, 0:22] * 100, label="Quartile 3")
+# ax[0].plot(c_all_bin_tauc[3, 0:22] * 100, label="Quartile 4")
+# # ax[0].plot(c_all_bin_tauc[4, 0:22] * 100, label="Quintile 4")
+# ax[0].legend(loc='upper right', frameon=False)
+
+# ax[1].set_title(r'Consumption response after transfer policy')
+# ax[1].plot(c_all_bin_tau[0, 0:22] * 100, label="Quartile 1")
+# ax[1].plot(c_all_bin_tau[1, 0:22] * 100, label="Quartile 2")
+# ax[1].plot(c_all_bin_tau[2, 0:22] * 100, label="Quartile 3")
+# ax[1].plot(c_all_bin_tau[3, 0:22] * 100, label="Quartile 4")
+# # ax[1].plot(c_all_bin_tau[4, 0:22] * 100, label="Quintile 4")
+# ax[1].legend(loc='upper right', frameon=False)
+# plt.show()
 
 
 print("Time elapsed: %s seconds" % (round(time.time() - start_time, 0)))   
