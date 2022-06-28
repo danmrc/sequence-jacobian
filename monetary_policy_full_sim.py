@@ -12,6 +12,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sequence_jacobian import het, simple, create_model    # functions
 from sequence_jacobian import interpolate, grids           # modules
+import functions_dist_agents as dist
 
 def chebyschev_grid(amin, amax, n): # see Judd(1998, p. 223)
     grid = np.linspace(1, n, num=n)
@@ -257,6 +258,37 @@ for t in range(T-1, -1, -1):
     V_prime_p_rstar, _, c, _ = iterate_h(household_d, V_prime_p_rstar, a_grid_rstar, e_grid_rstar, Pi_rstar, pi_e_rstar, beta, gamma,
                                           Div_ss_rstar, N_ss_rstar, path_r_rstar[t], Tau_ss_rstar, tauc, taun, w_ss_rstar)
     c_direct_rstar[:, :, t] = c
+
+
+econ_ss = dist.start_from_steady(1_000_000, D_ss_rstar, e_grid_rstar, a_grid_rstar)
+period_0_rstar = dist.update_economy(econ_ss, a_grid_rstar, e_grid_rstar, a_all_rstar[:,:,0], Pi_rstar)
+dist_0_rstar = dist.compute_distribution(period_0_rstar, a_grid_rstar, nE)
+
+print(np.sum(c_all_rstar[:,:,0]*dist_0_rstar))
+print(G_rstar['C']['rstar'][0][0] * drstar[0] + ss0_rstar['C'])
+
+c_first_dev_rstar = (c_all_rstar[:, :, 0] - c_ss_rstar) / c_ss_rstar
+c_first_dev_rstar_direct = (c_direct_rstar[:, :, 0] - c_ss_rstar) / c_ss_rstar
+
+c_first_rstar, c_first_rstar_direct = np.zeros(nA), np.zeros(nA)
+for i in range(nA):
+    c_first_rstar[i] = (c_first_dev_rstar[:, i] @ dist_0_rstar[:, i]) / np.sum(dist_0_rstar[:,i])
+    c_first_rstar_direct[i] = (c_first_dev_rstar_direct[:, i] @ dist_0_rstar[:, i]) / np.sum(dist_0_rstar[:,i])
+    
+c_first_bin_rstar = c_first_rstar.reshape(-1, nA, order='F').mean(axis=0)  
+c_first_bin_rstar_direct = c_first_rstar_direct.reshape(-1, nA, order='F').mean(axis=0) 
+c_first_bin_rstar_indirect = c_first_bin_rstar - c_first_bin_rstar_direct
+
+D_quant = 100 * np.cumsum(np.sum(dist_0_rstar, axis=0))
+
+color_map = ["#FFFFFF", "#D95319"] # myb: "#0072BD"
+fig, ax = plt.subplots(1,2)
+ax[0].set_title(r'Interest rate policy')
+ax[0].plot(D_quant, 100 * c_first_bin_rstar_direct, label="Direct effect", linewidth=3)  
+ax[0].stackplot(D_quant, 100 * c_first_bin_rstar_direct, 100 * c_first_bin_rstar_indirect, colors=color_map, labels=["", "+ GE"], alpha=0.5)  
+ax[0].legend(loc='upper left', frameon=False)
+ax[0].set_xlabel("Wealth percentile"), ax[0].set_ylabel("Percent deviation from steady state")
+
 
 
 

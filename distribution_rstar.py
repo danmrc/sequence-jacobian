@@ -66,7 +66,7 @@ shock_next = np.intc(shock_next) #makes the shock position become a integer inst
 full_dist = np.zeros((rstar.nE,rstar.nA)) 
 
 for i in range(nP):
-    full_dist[shock_next[i],pos[i]] += 1
+    full_dist[shock_next[i],pos[i]-1] += 1
 
 full_dist = full_dist/nP #to make it sure that the distribution sums to 1
 
