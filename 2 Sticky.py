@@ -206,21 +206,21 @@ amax = 150
 B_ss = 6.0
 N_ss = 1.0
 pi_ss = 0.0
-rstar = 0.005
+rstar = 0.01
 Y_ss = 1.0
 Z_ss = 1.0
 
 # Structural parameters
 gamma = 1.0
-kappa = 0.05
+kappa = 0.06
 kappaw = 0.06
 mu = 1.2
 muw = 1.2
 nu = 2.0
-rhot = 0.95
-sigma = 0.1
+rhot = 0.9
+sigma = 0.09
 tauc = 0.1
-taun = 0.036
+taun = 0.072
 
 
 # =============================================================================
@@ -363,177 +363,393 @@ Y_ss_rstar = ss_rstar['Y']
 
 
 # =============================================================================
-# Impulse response functions
+# IRF: Transfer vs monetary policy
+# =============================================================================
+
+# # Standard shock
+# discount = (1 / (1 + rstar))
+# #discount = ss_tau['beta']
+# rhos = 0.7
+# dtau = 0.02 * rhos ** np.arange(T)
+# drstar = -0.00285 * rhos ** np.arange(T)
+
+# # Zero net present value sock
+# shock = np.zeros(T)
+# # s1, s2, s3, s4, s5 = 1, 0.5, 0.1723464735, 5, 3 # rstar = 0.005
+# s1, s2, s3, s4, s5 = 1, 0.5, 0.162420896, 5, 3 # rstar = 0.01
+# for x in range(T):
+#     shock[x] = discount ** x * (s1 - s2 * (x - s5)) * np.exp(-s3 * (x - s5) - s4) 
+# dtau = shock
+
+# # # Plot shock
+# # cumshock = np.zeros(T)
+# # for i in range(T):
+# #     cumshock[i] = discount ** i * dtauc[i] # discounted cumulative sum
+# # plt.plot(shock[0:40], linewidth=2)
+# # plt.plot([0, 40], [0, 0], '--', color='gray', linewidth=0.5)
+# # plt.title("Zero net present value shock: " + str(round(np.sum(cumshock), 10)))
+# # plt.margins(x=0, y=0)
+# # plt.show()
+
+# # IRFs
+# dY = [G_tau['Y']['Tau'] @ dtau, G_rstar['Y']['rstar'] @ drstar]
+# dC = [G_tau['C']['Tau'] @ dtau, G_rstar['C']['rstar'] @ drstar]
+# dN = [G_tau['N']['Tau'] @ dtau, G_rstar['N']['rstar'] @ drstar]
+# dB = [G_tau['B']['Tau'] @ dtau, G_rstar['A']['rstar'] @ drstar]
+# dw = [G_tau['w']['Tau'] @ dtau, G_rstar['w']['rstar'] @ drstar]
+# dp = [G_tau['pi']['Tau'] @ dtau, G_rstar['pi']['rstar'] @ drstar]
+# dr = [G_tau['r']['Tau'] @ dtau, G_rstar['r']['rstar'] @ drstar]
+# dD = [G_tau['Deficit']['Tau'] @ dtau, G_rstar['Deficit']['rstar'] @ drstar]
+# dd = [G_tau['Div']['Tau'] @ dtau, G_rstar['Div']['rstar'] @ drstar]
+# dT = [G_tau['Trans']['Tau'] @ dtau, G_rstar['Trans']['rstar'] @ drstar]
+# di = [np.zeros(T), G_rstar['i']['rstar'] @ drstar]
+
+# plt.rcParams["figure.figsize"] = (20,7)
+# fig, ax = plt.subplots(2, 4)
+# fig.suptitle('Transfer vs monetary policy, HANK with sticky wages', size=16)
+# iT = 30
+
+# ax[0, 0].set_title(r'Output $Y$')
+# ax[0, 0].plot(100 * dY[0][:iT] / Y_ss_tau, label="Transfer policy")
+# ax[0, 0].plot(100 * dY[1][:iT] / Y_ss_rstar,'-.', label="Monetary policy")
+# ax[0, 0].plot([0, iT], [0, 0], '--', color='gray', linewidth=0.5)
+# ax[0, 0].legend(loc='upper right', frameon=False)
+
+# ax[0, 1].set_title(r'Consumption $C$')
+# ax[0, 1].plot(100 * dC[0][:iT] / C_ss_tau)
+# ax[0, 1].plot(100 * dC[1][:iT] / C_ss_rstar,'-.')
+# ax[0, 1].plot([0, iT], [0, 0], '--', color='gray', linewidth=0.5)
+
+# ax[0, 2].set_title(r'Government debt $B$')
+# ax[0, 2].plot(100 * dB[0][:iT] / B_ss_tau)
+# ax[0, 2].plot(100 * dB[1][:iT] / B_ss_rstar,'-.')
+# ax[0, 2].plot([0, iT], [0, 0], '--', color='gray', linewidth=0.5)
+
+# ax[0, 3].set_title(r'Transfer $\tau$')
+# ax[0, 3].plot(100 * dT[0][:iT])
+# ax[0, 3].plot(100 * dT[1][:iT],'-.')
+# ax[0, 3].plot([0, iT], [0, 0], '--', color='gray', linewidth=0.5)
+
+# ax[1, 0].set_title(r'Wage $w$')
+# ax[1, 0].plot(100 * dw[0][:iT] / w_ss_tau)
+# ax[1, 0].plot(100 * dw[1][:iT] / w_ss_rstar,'-.')
+# ax[1, 0].plot([0, iT], [0, 0], '--', color='gray', linewidth=0.5)
+
+# ax[1, 1].set_title(r'Inflation $\pi$')
+# ax[1, 1].plot(100 * dp[0][:iT])
+# ax[1, 1].plot(100 * dp[1][:iT],'-.')
+# ax[1, 1].plot([0, iT], [0, 0], '--', color='gray', linewidth=0.5)
+
+# ax[1, 2].set_title(r'Nominal interest rate $i$')
+# ax[1, 2].plot(100 * di[0][:iT])
+# ax[1, 2].plot(100 * di[1][:iT],'-.')
+# ax[1, 2].plot([0, iT], [0, 0], '--', color='gray', linewidth=0.5)
+
+# ax[1, 3].set_title(r'Budget deficit $D$')
+# ax[1, 3].plot(100 * dD[0][:iT])
+# ax[1, 3].plot(100 * dD[1][:iT],'-.')
+# ax[1, 3].plot([0, iT], [0, 0], '--', color='gray', linewidth=0.5)
+# plt.show()
+
+# # Discounted cumulative sum
+# cumtau, cumY, cumC, cumP, cumW, cumB, cumT = np.zeros(T), np.zeros(T), np.zeros(T), np.zeros(T), np.zeros(T), np.zeros(T), np.zeros(T)
+# dcumtau, dcumY, dcumC, dcumP, dcumW, dcumB, dcumT = np.zeros(T), np.zeros(T), np.zeros(T), np.zeros(T), np.zeros(T), np.zeros(T), np.zeros(T)
+# for i in range(T):
+#     cumtau[i] = discount ** i * dT[0][i]
+#     cumC[i] = discount ** i * dC[0][i]
+#     cumY[i] = discount ** i * dY[0][i]
+#     cumP[i] = discount ** i * dp[0][i]
+#     cumW[i] = discount ** i * dw[0][i]
+#     cumT[i] = discount ** i * dT[0][i]
+#     cumB[i] = discount ** i * dB[0][i]
+#     dcumtau[i] = discount ** i * (dT[0][i] + dT[1][i])
+#     dcumY[i] = discount ** i * (dY[0][i] - dY[1][i])
+#     dcumC[i] = discount ** i * (dC[0][i] - dC[1][i])
+#     dcumP[i] = discount ** i * (dp[0][i] - dp[1][i])
+#     dcumW[i] = discount ** i * (dw[0][i] - dw[1][i])
+#     dcumT[i] = discount ** i * (dT[0][i] - dT[1][i])
+#     dcumB[i] = discount ** i * (dB[0][i] - dB[1][i])
+
+# # Difference tau vs rstar
+# dif = [['\nTRANSFER v INTEREST RATE', 'CUM SUM \u03C4','CUM SUM \u03C4-i*','IMPACT \u03C4/i*'],
+#       ['Shocks', 100 * np.sum(cumtau), 100 * np.sum(dcumtau), -dtau[0] / di[1][0]],
+#       ['Output', 100 * np.sum(cumY), 100 * np.sum(dcumY), dY[0][0] / dY[1][0]],
+#       ['Consumption', 100 * np.sum(cumC), 100 * np.sum(dcumC), dC[0][0] / dC[1][0]],
+#       ['Inflation', 100 * np.sum(cumP), 100 * np.sum(dcumP), dp[0][0] / dp[1][0]],
+#       ['Wage', 100 * np.sum(cumW), 100 * np.sum(dcumW), dw[0][0] / dw[1][0]],
+#       ['Debt', 100 * np.sum(cumB), 100 * np.sum(dcumB), dB[0][0] / dB[1][0]],
+#       ['Transfer', 100 * np.sum(cumT), 100 * np.sum(dcumT), dT[0][0] / dT[1][0]]]
+# for i in range(len(dif)):
+#     if i == 0:
+#         print('{:<27} {:^14s} {:^15s} {:^15s}'.format(dif[i][0], dif[i][1], dif[i][2], dif[i][3]))
+#     else:
+#         print('{:<20s} {:>14.3f} {:s} {:>14.3f} {:s} {:>14.3f}'.format(dif[i][0], dif[i][1], "%", dif[i][2], "%", dif[i][3]))
+
+
+# =============================================================================
+# IRF: Consumption tax vs monetary policy
+# =============================================================================
+
+# # Standard shock
+# discount = (1 / (1 + rstar))
+# #discount = ss_tau['beta']
+# rhos = 0.67
+# dtauc = - 0.02 * rhos ** np.arange(T)
+# drstar = -0.00585 * rhos ** np.arange(T)
+
+# # Zero net present value sock
+# shock = np.zeros(T)
+# # s1, s2, s3, s4, s5 = 1, 0.5, 0.1723464735, 5, 3 # rstar = 0.005
+# s1, s2, s3, s4, s5 = 1, 0.5, 0.162420896, 5, 3 # rstar = 0.01
+# for x in range(T):
+#     shock[x] = discount ** x * (s1 - s2 * (x - s5)) * np.exp(-s3 * (x - s5) - s4) 
+# dtau = shock
+# dtauc = - dtau
+
+# # # Plot shock
+# # cumshock = np.zeros(T)
+# # for i in range(T):
+# #     cumshock[i] = discount ** i * dtauc[i] # discounted value
+# # plt.plot(shock[0:40], linewidth=2)
+# # plt.plot([0, 40], [0, 0], '--', color='gray', linewidth=0.5)
+# # plt.title("Zero net present value shock: " + str(round(np.sum(cumshock), 10)))
+# # plt.margins(x=0, y=0)
+# # plt.show()
+
+# # IRFs
+# dYc = [G_tau['Y']['tauc'] @ dtauc, G_rstar['Y']['rstar'] @ drstar]
+# dCc = [G_tau['C']['tauc'] @ dtauc, G_rstar['C']['rstar'] @ drstar]
+# dNc = [G_tau['N']['tauc'] @ dtauc, G_rstar['N']['rstar'] @ drstar]
+# dBc = [G_tau['B']['tauc'] @ dtauc, G_rstar['A']['rstar'] @ drstar]
+# dwc = [G_tau['w']['tauc'] @ dtauc, G_rstar['w']['rstar'] @ drstar]
+# dpc = [G_tau['pi']['tauc'] @ dtauc, G_rstar['pi']['rstar'] @ drstar]
+# drc = [G_tau['r']['tauc'] @ dtauc, G_rstar['r']['rstar'] @ drstar]
+# dDc = [G_tau['Deficit']['tauc'] @ dtauc, G_rstar['Deficit']['rstar'] @ drstar]
+# ddc = [G_tau['Div']['tauc'] @ dtauc, G_rstar['Div']['rstar'] @ drstar]
+# dTc = [np.zeros(T), G_rstar['Trans']['rstar'] @ drstar]
+# dTcc = [dtauc, np.zeros(T)]
+# dic = [np.zeros(T), G_rstar['i']['rstar'] @ drstar]
+
+# plt.rcParams["figure.figsize"] = (20,7)
+# fig, ax = plt.subplots(2, 4)
+# fig.suptitle('Consumption tax vs monetary policy, HANK with sticky wages', size=16)
+# iT = 30
+
+# ax[0, 0].set_title(r'Output $Y$')
+# ax[0, 0].plot(100 * dYc[0][:iT] / Y_ss_tau, label="Consumption tax policy")
+# ax[0, 0].plot(100 * dYc[1][:iT] / Y_ss_rstar,'-.', label="Monetary policy")
+# ax[0, 0].plot([0, iT], [0, 0], '--', color='gray', linewidth=0.5)
+# ax[0, 0].legend(loc='upper right', frameon=False)
+
+# ax[0, 1].set_title(r'Consumption $C$')
+# ax[0, 1].plot(100 * dCc[0][:iT] / C_ss_tau)
+# ax[0, 1].plot(100 * dCc[1][:iT] / C_ss_rstar,'-.')
+# ax[0, 1].plot([0, iT], [0, 0], '--', color='gray', linewidth=0.5)
+
+# ax[0, 2].set_title(r'Government debt $B$')
+# ax[0, 2].plot(100 * dBc[0][:iT] / B_ss_tau)
+# ax[0, 2].plot(100 * dBc[1][:iT] / B_ss_rstar,'-.')
+# ax[0, 2].plot([0, iT], [0, 0], '--', color='gray', linewidth=0.5)
+
+# ax[0, 3].set_title(r'Transfer $\tau$')
+# ax[0, 3].plot(100 * dTc[0][:iT])
+# ax[0, 3].plot(100 * dTc[1][:iT],'-.')
+# ax[0, 3].plot([0, iT], [0, 0], '--', color='gray', linewidth=0.5)
+
+# ax[1, 0].set_title(r'Wage $w$')
+# ax[1, 0].plot(100 * dwc[0][:iT] / w_ss_tau)
+# ax[1, 0].plot(100 * dwc[1][:iT] / w_ss_rstar,'-.')
+# ax[1, 0].plot([0, iT], [0, 0], '--', color='gray', linewidth=0.5)
+
+# ax[1, 1].set_title(r'Inflation $\pi$')
+# ax[1, 1].plot(100 * dpc[0][:iT])
+# ax[1, 1].plot(100 * dpc[1][:iT],'-.')
+# ax[1, 1].plot([0, iT], [0, 0], '--', color='gray', linewidth=0.5)
+
+# # ax[1, 2].set_title(r'Dividends $d$')
+# # ax[1, 2].plot(ddc[0][:iT])
+# # ax[1, 2].plot(ddc[1][:iT])
+# # ax[1, 2].plot([0, iT], [0, 0], '--', color='gray', linewidth=0.5)
+
+# ax[1, 2].set_title(r'Nominal interest rate $i$')
+# ax[1, 2].plot(100 * dic[0][:iT])
+# ax[1, 2].plot(100 * dic[1][:iT],'-.')
+# ax[1, 2].plot([0, iT], [0, 0], '--', color='gray', linewidth=0.5)
+
+# ax[1, 3].set_title(r'Consumption tax $\tau_c$')
+# ax[1, 3].plot(100 * dTcc[0][:iT])
+# ax[1, 3].plot(100 * dTcc[1][:iT],'-.')
+# ax[1, 3].plot([0, iT], [0, 0], '--', color='gray', linewidth=0.5)
+# plt.show()
+
+# # Discounted cumulative sum
+# cumtau, cumY, cumC, cumP, cumW, cumB, cumT = np.zeros(T), np.zeros(T), np.zeros(T), np.zeros(T), np.zeros(T), np.zeros(T), np.zeros(T)
+# dcumtau, dcumY, dcumC, dcumP, dcumW, dcumB, dcumT = np.zeros(T), np.zeros(T), np.zeros(T), np.zeros(T), np.zeros(T), np.zeros(T), np.zeros(T)
+# for i in range(T):
+#     cumtau[i] = discount ** i * dTc[0][i]
+#     cumC[i] = discount ** i * dCc[0][i]
+#     cumY[i] = discount ** i * dYc[0][i]
+#     cumP[i] = discount ** i * dpc[0][i]
+#     cumW[i] = discount ** i * dwc[0][i]
+#     cumB[i] = discount ** i * dBc[0][i]
+#     cumT[i] = discount ** i * dTc[0][i]
+#     dcumtau[i] = discount ** i * (dTc[0][i] + dTc[1][i])
+#     dcumY[i] = discount ** i * (dYc[0][i] - dYc[1][i])
+#     dcumC[i] = discount ** i * (dCc[0][i] - dCc[1][i])
+#     dcumP[i] = discount ** i * (dpc[0][i] - dpc[1][i])
+#     dcumW[i] = discount ** i * (dwc[0][i] - dwc[1][i])
+#     dcumB[i] = discount ** i * (dBc[0][i] - dBc[1][i])
+#     dcumT[i] = discount ** i * (dTc[0][i] - dTc[1][i])
+    
+# # Difference tauc vs rstar
+# dif = [['\nTAX v INTEREST RATE', 'CUM SUM \u03C4c','CUM SUM \u03C4c-i*','IMPACT \u03C4c/i*'],
+#       ['Shocks', 100 * np.sum(cumtau), 100 * np.sum(dcumtau), dtauc[0] / dic[1][0]],
+#       ['Output', 100 * np.sum(cumY), 100 * np.sum(dcumY), dYc[0][0] / dYc[1][0]],
+#       ['Consumption', 100 * np.sum(cumC), 100 * np.sum(dcumC), dCc[0][0] / dCc[1][0]],
+#       ['Inflation', 100 * np.sum(cumP), 100 * np.sum(dcumP), dpc[0][0] / dpc[1][0]],
+#       ['Wage', 100 * np.sum(cumW), 100 * np.sum(dcumW), dwc[0][0] / dwc[1][0]],
+#       ['Debt', 100 * np.sum(cumB), 100 * np.sum(dcumB), dBc[0][0] / dBc[1][0]],
+#       ['Transfer', 100 * np.sum(cumT), 100 * np.sum(dcumT), dTc[0][0] / dTc[1][0]]]
+# for i in range(len(dif)):
+#     if i == 0:
+#         print('{:<27s} {:^15s} {:^15s} {:^15s}'.format(dif[i][0], dif[i][1], dif[i][2], dif[i][3]))
+#     else:
+#         print('{:<20s} {:>14.3f} {:s} {:>14.3f} {:s} {:>14.3f}'.format(dif[i][0], dif[i][1], "%", dif[i][2], "%", dif[i][3]))
+
+
+# =============================================================================
+# IRF: Consumption tax vs transfer
 # =============================================================================
 
 # Standard shock
 discount = (1 / (1 + rstar))
-#discount = ss_tau['beta']
-rhos = 0.64
+rhos = 0.67
 dtau = 0.02 * rhos ** np.arange(T)
 dtauc = - dtau
-drstar = -0.013 * rhos ** np.arange(T)
 
 # Zero net present value sock
 shock = np.zeros(T)
-s1, s2, s3, s4, s5 = 1, 0.5, 0.1723464735, 5, 3 # r_ss discount factor
-#s1, s2, s3, s4, s5 = 1, 0.5, 0.1608615, 5, 3 # beta discount factor
+s1, s2, s3, s4, s5 = 1, 0.5, 0.162420896, 5, 3 # rstar = 0.01
 for x in range(T):
     shock[x] = discount ** x * (s1 - s2 * (x - s5)) * np.exp(-s3 * (x - s5) - s4) 
 dtau = shock
-dtauc = -dtau
+dtauc = - dtau
 
 # # Plot shock
-# plt.plot(shock[0:30], linewidth=2)
-# plt.plot([0, 30], [0, 0], '--', color='gray', linewidth=0.5)
-# plt.show()
-
-# # Discounted cumulative sum
-# # cumshock = lambda i : (discount ** i * dtau[i])
 # cumshock = np.zeros(T)
 # for i in range(T):
-#     cumshock[i] = discount ** i * dtau[i]
-# print("Cumulative sum = ", np.sum(cumshock))
+#     cumshock[i] = discount ** i * dtauc[i] # discounted value
+# plt.plot(shock[0:40], linewidth=2)
+# plt.plot([0, 40], [0, 0], '--', color='gray', linewidth=0.5)
+# plt.title("Zero net present value shock: " + str(round(np.sum(cumshock), 10)))
+# plt.margins(x=0, y=0)
+# plt.show()
 
 # IRFs
-dY = [G_tau['Y']['tauc'] @ dtauc, G_tau['Y']['Tau'] @ dtau, G_rstar['Y']['rstar'] @ drstar]
-dC = [G_tau['C']['tauc'] @ dtauc, G_tau['C']['Tau'] @ dtau, G_rstar['C']['rstar'] @ drstar]
-dN = [G_tau['N']['tauc'] @ dtauc, G_tau['N']['Tau'] @ dtau, G_rstar['N']['rstar'] @ drstar]
-dB = [G_tau['B']['tauc'] @ dtauc, G_tau['B']['Tau'] @ dtau, G_rstar['A']['rstar'] @ drstar]
-dw = [G_tau['w']['tauc'] @ dtauc, G_tau['w']['Tau'] @ dtau, G_rstar['w']['rstar'] @ drstar]
-dp = [G_tau['pi']['tauc'] @ dtauc, G_tau['pi']['Tau'] @ dtau, G_rstar['pi']['rstar'] @ drstar]
-dr = [G_tau['r']['tauc'] @ dtauc, G_tau['r']['Tau'] @ dtau, G_rstar['r']['rstar'] @ drstar]
-dD = [G_tau['Deficit']['tauc'] @ dtauc, G_tau['Deficit']['Tau'] @ dtau, G_rstar['Deficit']['rstar'] @ drstar]
-dd = [G_tau['Div']['tauc'] @ dtauc, G_tau['Div']['Tau'] @ dtau, G_rstar['Div']['rstar'] @ drstar]
-dT = [np.zeros(T), G_tau['Trans']['Tau'] @ dtau, G_rstar['Trans']['rstar'] @ drstar]
-dTc = [dtauc, np.zeros(T), np.zeros(T)]
-di = [np.zeros(T), np.zeros(T), G_rstar['i']['rstar'] @ drstar]
+dY = [G_tau['Y']['tauc'] @ dtauc, G_tau['Y']['Tau'] @ dtau]
+dC = [G_tau['C']['tauc'] @ dtauc, G_tau['C']['Tau'] @ dtau]
+dN = [G_tau['N']['tauc'] @ dtauc, G_tau['N']['Tau'] @ dtau]
+dB = [G_tau['B']['tauc'] @ dtauc, G_tau['A']['Tau'] @ dtau]
+dw = [G_tau['w']['tauc'] @ dtauc, G_tau['w']['Tau'] @ dtau]
+dp = [G_tau['pi']['tauc'] @ dtauc, G_tau['pi']['Tau'] @ dtau]
+dr = [G_tau['r']['tauc'] @ dtauc, G_tau['r']['Tau'] @ dtau]
+dD = [G_tau['Deficit']['tauc'] @ dtauc, G_tau['Deficit']['Tau'] @ dtau]
+dd = [G_tau['Div']['tauc'] @ dtauc, G_tau['Div']['Tau'] @ dtau]
+dT = [np.zeros(T), G_tau['Trans']['Tau'] @ dtau]
+dTc = [dtauc, np.zeros(T)]
+di = [np.zeros(T), np.zeros(T)]
 
 plt.rcParams["figure.figsize"] = (20,7)
 fig, ax = plt.subplots(2, 4)
-fig.suptitle('Response to different policies, HANK with sticky wages', size=16)
+fig.suptitle('Consumption tax vs transfer, HANK with sticky wages', size=16)
 iT = 30
 
 ax[0, 0].set_title(r'Output $Y$')
 ax[0, 0].plot(100 * dY[0][:iT] / Y_ss_tau, label="Consumption tax policy")
-# ax[0, 0].plot(100 * dY[1][:iT] / Y_ss_tau, label="Transfer policy")
-ax[0, 0].plot(100 * dY[2][:iT] / Y_ss_rstar,'-.', label="Monetary policy")
+ax[0, 0].plot(100 * dY[1][:iT] / Y_ss_tau,'-.', label="Transfer policy")
 ax[0, 0].plot([0, iT], [0, 0], '--', color='gray', linewidth=0.5)
 ax[0, 0].legend(loc='upper right', frameon=False)
 
 ax[0, 1].set_title(r'Consumption $C$')
 ax[0, 1].plot(100 * dC[0][:iT] / C_ss_tau)
-# ax[0, 1].plot(100 * dC[1][:iT] / C_ss_tau)
-ax[0, 1].plot(100 * dC[2][:iT] / C_ss_rstar,'-.')
+ax[0, 1].plot(100 * dC[1][:iT] / C_ss_tau,'-.')
 ax[0, 1].plot([0, iT], [0, 0], '--', color='gray', linewidth=0.5)
 
 ax[0, 2].set_title(r'Government debt $B$')
 ax[0, 2].plot(100 * dB[0][:iT] / B_ss_tau)
-# ax[0, 2].plot(100 * dB[1][:iT] / B_ss_tau)
-ax[0, 2].plot(100 * dB[2][:iT] / B_ss_rstar,'-.')
+ax[0, 2].plot(100 * dB[1][:iT] / B_ss_tau,'-.')
 ax[0, 2].plot([0, iT], [0, 0], '--', color='gray', linewidth=0.5)
 
 ax[0, 3].set_title(r'Transfer $\tau$')
 ax[0, 3].plot(100 * dT[0][:iT])
-# ax[0, 3].plot(100 * dT[1][:iT])
-ax[0, 3].plot(100 * dT[2][:iT],'-.')
+ax[0, 3].plot(100 * dT[1][:iT],'-.')
 ax[0, 3].plot([0, iT], [0, 0], '--', color='gray', linewidth=0.5)
 
 ax[1, 0].set_title(r'Wage $w$')
 ax[1, 0].plot(100 * dw[0][:iT] / w_ss_tau)
-ax[1, 0].plot(100 * dw[2][:iT] / w_ss_rstar,'-.')
+ax[1, 0].plot(100 * dw[1][:iT] / w_ss_tau,'-.')
 ax[1, 0].plot([0, iT], [0, 0], '--', color='gray', linewidth=0.5)
 
 ax[1, 1].set_title(r'Inflation $\pi$')
 ax[1, 1].plot(100 * dp[0][:iT])
-# ax[1, 1].plot(100 * dp[1][:iT])
-ax[1, 1].plot(100 * dp[2][:iT],'-.')
+ax[1, 1].plot(100 * dp[1][:iT],'-.')
 ax[1, 1].plot([0, iT], [0, 0], '--', color='gray', linewidth=0.5)
-
-# ax[1, 2].set_title(r'Dividends $d$')
-# ax[1, 2].plot(dd[0][:iT])
-# ax[1, 2].plot(dd[1][:iT])
-# ax[1, 2].plot(dd[2][:iT],'-.')
-# ax[1, 2].plot([0, iT], [0, 0], '--', color='gray', linewidth=0.5)
-
-# ax[1, 2].set_title(r'Budget deficit $D$')
-# ax[1, 2].plot(100 * dD[0][:iT])
-# # ax[1, 2].plot(100 * dD[1][:iT])
-# ax[1, 2].plot(100 * dD[2][:iT],'-.')
-# ax[1, 2].plot([0, iT], [0, 0], '--', color='gray', linewidth=0.5)
 
 ax[1, 2].set_title(r'Nominal interest rate $i$')
 ax[1, 2].plot(100 * di[0][:iT])
-# ax[1, 2].plot(100 * di[1][:iT])
-ax[1, 2].plot(100 * di[2][:iT],'-.')
+ax[1, 2].plot(100 * di[1][:iT],'-.')
 ax[1, 2].plot([0, iT], [0, 0], '--', color='gray', linewidth=0.5)
 
 ax[1, 3].set_title(r'Consumption tax $\tau_c$')
 ax[1, 3].plot(100 * dTc[0][:iT])
-# ax[1, 2].plot(100 * dTc[1][:iT])
-ax[1, 3].plot(100 * dTc[2][:iT],'-.')
+ax[1, 3].plot(100 * dTc[1][:iT],'-.')
 ax[1, 3].plot([0, iT], [0, 0], '--', color='gray', linewidth=0.5)
 plt.show()
 
 # Discounted cumulative sum
-cumtau, cumY, cumC, cumP, cumW, cumD, cumB = np.zeros(T), np.zeros(T), np.zeros(T), np.zeros(T), np.zeros(T), np.zeros(T), np.zeros(T)
-dcumtau, dcumY, dcumC, dcumP, dcumW, dcumD, dcumB = np.zeros(T), np.zeros(T), np.zeros(T), np.zeros(T), np.zeros(T), np.zeros(T), np.zeros(T)
+cumtau, cumY, cumC, cumP, cumW, cumB, cumT = np.zeros(T), np.zeros(T), np.zeros(T), np.zeros(T), np.zeros(T), np.zeros(T), np.zeros(T)
+dcumtau, dcumY, dcumC, dcumP, dcumW, dcumB, dcumT = np.zeros(T), np.zeros(T), np.zeros(T), np.zeros(T), np.zeros(T), np.zeros(T), np.zeros(T)
 for i in range(T):
     cumtau[i] = discount ** i * dT[0][i]
     cumC[i] = discount ** i * dC[0][i]
     cumY[i] = discount ** i * dY[0][i]
     cumP[i] = discount ** i * dp[0][i]
     cumW[i] = discount ** i * dw[0][i]
-    # cumD[i] = discount ** i * dD[0][i]
     cumB[i] = discount ** i * dB[0][i]
-    dcumtau[i] = discount ** i * (dT[0][i] + dT[2][i])
-    dcumY[i] = discount ** i * (dY[0][i] - dY[2][i])
-    dcumC[i] = discount ** i * (dC[0][i] - dC[2][i])
-    dcumP[i] = discount ** i * (dp[0][i] - dp[2][i])
-    dcumW[i] = discount ** i * (dw[0][i] - dw[2][i])
-    # dcumD[i] = discount ** i * (dD[0][i] - dD[2][i])
-    dcumB[i] = discount ** i * (dB[0][i] - dB[2][i])
-
-# Difference
-dif = [['\nDYNAMICS', 'CUM SUM \u03C4c','CUM SUM \u03C4c-i*','IMPACT \u03C4c/i*'],
-      ['Shocks', 100 * np.sum(cumtau), 100 * np.sum(dcumtau), dtauc[0] * tauc / di[2][0]],
-      ['Output', 100 * np.sum(cumY), 100 * np.sum(dcumY), dY[0][0] / dY[2][0]],
-      ['Consumption', 100 * np.sum(cumC), 100 * np.sum(dcumC), dC[0][0] / dC[2][0]],
-      ['Inflation', 100 * np.sum(cumP), 100 * np.sum(dcumP), dp[1][0] / dp[2][0]],
-      ['Wage', 100 * np.sum(cumW), 100 * np.sum(dcumW), dw[0][0] / dw[2][0]],
-      ['Debt', 100 * np.sum(cumB), 100 * np.sum(dcumB), dB[0][0] / dB[2][0]]]
+    cumT[i] = discount ** i * dT[0][i]
+    dcumtau[i] = discount ** i * (dTc[0][i] + dT[1][i])
+    dcumY[i] = discount ** i * (dY[0][i] - dY[1][i])
+    dcumC[i] = discount ** i * (dC[0][i] - dC[1][i])
+    dcumP[i] = discount ** i * (dp[0][i] - dp[1][i])
+    dcumW[i] = discount ** i * (dw[0][i] - dw[1][i])
+    dcumB[i] = discount ** i * (dB[0][i] - dB[1][i])
+    dcumT[i] = discount ** i * (dT[0][i] - dT[1][i])
+    
+# Difference tauc vs rstar
+dif = [['\nTAX v TRANSFER', 'CUM SUM \u03C4c','CUM SUM \u03C4c-\u03C4','IMPACT \u03C4c/\u03C4'],
+      ['Shocks', 100 * np.sum(cumtau), 100 * np.sum(dcumtau), - dtauc[0] / dtau[0]],
+      ['Output', 100 * np.sum(cumY), 100 * np.sum(dcumY), dY[0][0] / dY[1][0]],
+      ['Consumption', 100 * np.sum(cumC), 100 * np.sum(dcumC), dC[0][0] / dC[1][0]],
+      ['Inflation', 100 * np.sum(cumP), 100 * np.sum(dcumP), dp[0][0] / dp[1][0]],
+      ['Wage', 100 * np.sum(cumW), 100 * np.sum(dcumW), dw[0][0] / dw[1][0]],
+      ['Debt', 100 * np.sum(cumB), 100 * np.sum(dcumB), dB[0][0] / dB[1][0]],
+      ['Transfer', 100 * np.sum(cumT), 100 * np.sum(dcumT), dT[0][0] / dT[1][0]]]
 for i in range(len(dif)):
     if i == 0:
-        print('{:<26s} {:^15s} {:^15s} {:^15s}'.format(dif[i][0], dif[i][1], dif[i][2], dif[i][3]))
+        print('{:<27s} {:^15s} {:^15s} {:^15s}'.format(dif[i][0], dif[i][1], dif[i][2], dif[i][3]))
     else:
         print('{:<20s} {:>14.3f} {:s} {:>14.3f} {:s} {:>14.3f}'.format(dif[i][0], dif[i][1], "%", dif[i][2], "%", dif[i][3]))
-
-# # Discounted cumulative sum
-# cumtau, cumY, cumC, cumP, cumW, cumD = np.zeros(T), np.zeros(T), np.zeros(T), np.zeros(T), np.zeros(T), np.zeros(T)
-# for i in range(T):
-#     cumtau[i] = discount ** i * dtau[i]
-#     cumY[i] = discount ** i * dY[0][i]
-#     cumC[i] = discount ** i * dC[0][i]
-#     cumP[i] = discount ** i * dp[0][i]
-#     cumW[i] = discount ** i * dw[0][i]
-#     cumD[i] = discount ** i * dD[0][i]
-# # print(np.sum(cumD))
-
+        
 
 # =============================================================================
-# Impact response by wealth percentile
+# Distribution: Transfer vs monetary policy
 # =============================================================================
 
 # # Model 1: Transfer policy
 # print("\nMODEL 1: TRANSFER POLICY")
-# beta = ss_tau['beta']
-# tauc = ss_tau['tauc']
-# taun = ss_tau['taun']
-# gamma = ss_tau['gamma']
-# nE = ss_tau['nE']
-# nA = ss_tau['nA']
 
-# # Steady-state variables
+# # Parameters and steady-state variables
+# beta = ss_tau['beta']
 # a_grid_tau = ss_tau.internals['household']['a_grid']
 # e_grid_tau = ss_tau.internals['household']['e_grid']
 # c_ss_tau = ss_tau.internals['household']['c']
@@ -548,13 +764,6 @@ for i in range(len(dif)):
 # path_r_tau = r_ss_tau + G_tau['r']['Tau'] @ dtau
 # path_tau_tau = Tau_ss_tau + dtau
 # path_w_tau = w_ss_tau + G_tau['w']['Tau'] @ dtau
-
-# # Aggregate dynamics, multiplicative shock
-# # path_div_tau = Div_ss_tau * (1 + G_tau['Div']['Tau'] @ dtau)
-# # path_n_tau = N_ss_tau * (1 + G_tau['N']['Tau'] @ dtau)
-# # path_r_tau = r_ss_tau * (1 + G_tau['r']['Tau'] @ dtau)
-# # path_tau_tau = Tau_ss_tau * (1 + dtau)
-# # path_w_tau = w_ss_tau * (1 + G_tau['w']['Tau'] @ dtau)
 
 # # Compute all individual consumption paths
 # print("Computing individual paths...", end=" ")
@@ -581,14 +790,9 @@ for i in range(len(dif)):
 
 # # Model 2: Interest rate policy
 # print("MODEL 2: INTEREST RATE POLICY")
-# beta = ss_rstar['beta']
-# tauc = ss_rstar['tauc']
-# taun = ss_rstar['taun']
-# gamma = ss_rstar['gamma']
-# nE = ss_rstar['nE']
-# nA = ss_rstar['nA']
 
-# # Steady-state variables
+# # Parameters and steady-state variables
+# beta = ss_rstar['beta']
 # a_grid_rstar = ss_rstar.internals['household']['a_grid']
 # e_grid_rstar = ss_rstar.internals['household']['e_grid']
 # c_ss_rstar = ss_rstar.internals['household']['c']
@@ -720,6 +924,127 @@ for i in range(len(dif)):
 # # # plt.legend(loc='upper right', frameon=false)
 # # plt.xlabel("wealth percentile"), plt.ylabel("percent deviation from steady state")
 # # plt.show()
+
+
+# =============================================================================
+# Distribution: Consumption tax vs transfer
+# =============================================================================
+
+# Common parameters and steady-state variables
+beta = ss_tau['beta']
+a_grid_tau = ss_tau.internals['household']['a_grid']
+e_grid_tau = ss_tau.internals['household']['e_grid']
+c_ss_tau = ss_tau.internals['household']['c']
+Pi_tau = ss_tau.internals['household']['Pi']
+pi_e_tau = ss_tau.internals['household']['pi_e']
+# D_ss_tau = ss_tau.internals['household']['Dbeg']
+D_ss_tau = ss_tau.internals['household']['D']
+V_prime_tau_ss = (1 + rstar) / (1 + tauc) * c_ss_tau ** (-gamma)
+
+# Policy 1: consumption tax
+print("\nPOLICY 1: CONSUMPTION TAX")
+
+# Aggregate transition dynamics
+path_div_tauc = Div_ss_tau + G_tau['Div']['tauc'] @ dtauc
+path_n_tauc = N_ss_tau + G_tau['N']['tauc'] @ dtauc
+path_r_tauc = r_ss_tau + G_tau['r']['tauc'] @ dtauc
+path_tauc_tauc = tauc + dtauc
+path_w_tauc = w_ss_tau + G_tau['w']['tauc'] @ dtauc
+
+# Compute all individual consumption paths
+print("Computing individual paths...", end=" ")
+V_prime_p_tau = V_prime_tau_ss
+c_all_tauc = np.zeros((nE, nA, T))
+for t in range(T-1, -1, -1):
+    V_prime_p_tau, _, c, _ = iterate_h(household_d, V_prime_p_tau, a_grid_tau, e_grid_tau, Pi_tau, pi_e_tau, beta, gamma,
+                                        path_div_tauc[t], path_n_tauc[t], path_r_tauc[t], Tau_ss_tau, path_tauc_tauc[t], taun, path_w_tauc[t])
+    c_all_tauc[:, :, t] = c  
+print("Done")
+
+# Direct effect of policy
+print("Computing direct effect...", end=" ")
+V_prime_p_tau = V_prime_tau_ss
+c_direct_tauc = np.zeros((nE, nA, T))
+for t in range(T-1, -1, -1):
+    V_prime_p_tau, _, c, _ = iterate_h(household_d, V_prime_p_tau, a_grid_tau, e_grid_tau, Pi_tau, pi_e_tau, beta, gamma,
+                                        Div_ss_tau, N_ss_tau, r_ss_tau, Tau_ss_tau, path_tauc_tauc[t], taun, w_ss_tau)
+    c_direct_tauc[:, :, t] = c
+print("Done")
+
+
+# Policy 2: transfer
+print("\nPOLICY 2: TRANSFER")
+
+# Aggregate transition dynamics
+path_div_tau = Div_ss_tau + G_tau['Div']['Tau'] @ dtau
+path_n_tau = N_ss_tau + G_tau['N']['Tau'] @ dtau
+path_r_tau = r_ss_tau + G_tau['r']['Tau'] @ dtau
+path_tau_tau = Tau_ss_tau + dtau
+path_w_tau = w_ss_tau + G_tau['w']['Tau'] @ dtau
+
+# Compute all individual consumption paths
+print("Computing individual paths...", end=" ")
+V_prime_p_tau = V_prime_tau_ss
+c_all_tau = np.zeros((nE, nA, T))
+for t in range(T-1, -1, -1):
+    V_prime_p_tau, _, c, _ = iterate_h(household_d, V_prime_p_tau, a_grid_tau, e_grid_tau, Pi_tau, pi_e_tau, beta, gamma,
+                                        path_div_tau[t], path_n_tau[t], path_r_tau[t], path_tau_tau[t], tauc, taun, path_w_tau[t])
+    c_all_tau[:, :, t] = c  
+print("Done")
+
+# Direct effect of policy
+print("Computing direct effect...", end=" ")
+V_prime_p_tau = V_prime_tau_ss
+c_direct_tau = np.zeros((nE, nA, T))
+for t in range(T-1, -1, -1):
+    V_prime_p_tau, _, c, _ = iterate_h(household_d, V_prime_p_tau, a_grid_tau, e_grid_tau, Pi_tau, pi_e_tau, beta, gamma,
+                                        Div_ss_tau, N_ss_tau, r_ss_tau, path_tau_tau[t], tauc, taun, w_ss_tau)
+    c_direct_tau[:, :, t] = c
+print("Done")
+
+# Select first period only and express as deviation from steady state
+c_first_dev_tauc = (c_all_tauc[:, :, 0] - c_ss_tau) / c_ss_tau
+c_first_dev_tauc_direct = (c_direct_tauc[:, :, 0] - c_ss_tau) / c_ss_tau
+c_first_dev_tau = (c_all_tau[:, :, 0] - c_ss_tau) / c_ss_tau
+c_first_dev_tau_direct = (c_direct_tau[:, :, 0] - c_ss_tau) / c_ss_tau
+
+# Weigh response by mass of agents
+c_first_tauc, c_first_tauc_direct, c_first_tau, c_first_tau_direct = np.zeros(nA), np.zeros(nA), np.zeros(nA), np.zeros(nA)
+for i in range(nA):
+    c_first_tauc[i] = (c_first_dev_tauc[:, i] @ D_ss_tau[:, i]) / np.sum(D_ss_tau[:,i])
+    c_first_tauc_direct[i] = (c_first_dev_tauc_direct[:, i] @ D_ss_tau[:, i]) / np.sum(D_ss_tau[:,i])
+    c_first_tau[i] = (c_first_dev_tau[:, i] @ D_ss_tau[:, i]) / np.sum(D_ss_tau[:,i])
+    c_first_tau_direct[i] = (c_first_dev_tau_direct[:, i] @ D_ss_tau[:, i]) / np.sum(D_ss_tau[:,i])
+
+# Compute indirect effects
+c_first_tauc_indirect = c_first_tauc - c_first_tauc_direct
+c_first_tau_indirect = c_first_tau - c_first_tau_direct
+
+# X-axis
+D_ss_quant = 100 * np.cumsum(np.sum(D_ss_tau, axis=0))
+
+# First percentile
+D_ss_quant = np.append(0, D_ss_quant)
+c_first_tauc_direct = np.append(c_first_tauc_direct[0], c_first_tauc_direct)
+c_first_tauc_indirect =  np.append(c_first_tauc_indirect[0], c_first_tauc_indirect)
+c_first_tau_direct = np.append(c_first_tau_direct[0], c_first_tau_direct)
+c_first_tau_indirect =  np.append(c_first_tau_indirect[0], c_first_tau_indirect)
+ 
+# Plot results
+color_map = ["#FFFFFF", "#D95319"] # myb: "#0072BD"
+fig, ax = plt.subplots(1,2)
+ax[0].set_title(r'Consumption tax policy')
+ax[0].plot(D_ss_quant, 100 * c_first_tauc_direct, label="Direct effect", linewidth=3)  
+ax[0].stackplot(D_ss_quant, 100 * c_first_tauc_direct, 100 * c_first_tauc_indirect, colors=color_map, labels=["", "+ GE"], alpha=0.5)  
+ax[0].legend(loc='upper left', frameon=False)
+ax[0].set_xlabel("Wealth percentile"), ax[0].set_ylabel("Percent deviation from steady state")
+
+ax[1].set_title(r'Transfer policy')
+ax[1].plot(D_ss_quant, 100 * c_first_tau_direct, label="Direct effect", linewidth=3)    
+ax[1].stackplot(D_ss_quant, 100 * c_first_tau_direct, 100 * c_first_tau_indirect, colors=color_map, labels=["", "+ GE"], alpha=0.5)   
+ax[1].legend(loc='upper right', frameon=False)
+ax[1].set_xlabel("Wealth percentile")
+plt.show()
 
 
 # # # =============================================================================

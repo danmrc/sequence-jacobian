@@ -81,7 +81,7 @@ def nkpc(kappa, mu, pi, r, w, Y, Z):
 B_ss = 6.0
 N_ss = 1.0
 pi_ss = 0.0
-rstar = 0.005
+rstar = 0.01
 Y_ss = 1.0
 Z_ss = 1.0
 
@@ -90,8 +90,8 @@ gamma = 1.0
 kappa = 0.05
 mu = 1.2
 nu = 2.0
-rhot = 0.9
-sigma = 0.1
+rhot = 0.95
+sigma = 0.05
 tauc = 0.1
 taun = 0.036
 
@@ -208,39 +208,36 @@ for i in range(len(ss_var_rstar)):
 
 # Standard shock
 discount = (1 / (1 + rstar))
-rhos = 0.5
-drstar = -0.01699 * rhos ** np.arange(T) 
+rhos = 0.55
+drstar = -0.01572 * rhos ** np.arange(T) 
 # drstar = -0.01887 * rhos ** np.arange(T) # no tauc in labor supply 
-dtau = 0.03 * rhos ** np.arange(T)
-# dtauc = - dtau * .0999
+dtau = 0.0223 * rhos ** np.arange(T)
+dtauc = - dtau
 
 # Zero net present value sock
 shock = np.zeros(T)
-s1, s2, s3, s4, s5 = 1, 0.5, 0.1723464735, 5, 3 # r_ss discount factor
+# s1, s2, s3, s4, s5 = 1, 0.5, 0.1723464735, 5, 3 # rstar = 0.005
+s1, s2, s3, s4, s5 = 1, 0.5, 0.162420896, 5, 3 # rstar = 0.01
 for x in range(T):
     shock[x] = discount ** x * (s1 - s2 * (x - s5)) * np.exp(-s3 * (x - s5) - s4) 
 dtau = shock
-dtauc = - shock
-# drstar = - shock * .55
-
-# Discounted cumulative sum
-cumshock = np.zeros(T)
-for i in range(T):
-    cumshock[i] = discount ** i * dtauc[i]
-# print('Discounted cumulative sum', np.sum(cumshock))
+dtauc = - dtau
 
 # # Plot shock
+# cumshock = np.zeros(T)
+# for i in range(T):
+#     cumshock[i] = discount ** i * dtauc[i] # discounted cumulative sum
 # plt.plot(shock[0:40], linewidth=2)
 # plt.plot([0, 40], [0, 0], '--', color='gray', linewidth=0.5)
 # plt.title("Zero net present value shock: " + str(round(np.sum(cumshock), 10)))
+# plt.margins(x=0, y=0)
 # plt.show()
-
 
 dY = [G_tauc['Y']['tauc'] @ dtauc, G_tauc['Y']['Tau'] @ dtau, G_rstar['Y']['rstar'] @ drstar]
 dC = [G_tauc['C']['tauc'] @ dtauc, G_tauc['C']['Tau'] @ dtau, G_rstar['C']['rstar'] @ drstar]
 dN = [G_tauc['N']['tauc'] @ dtauc, G_tauc['N']['Tau'] @ dtau, G_rstar['N']['rstar'] @ drstar]
-dB = [G_tauc['B']['tauc'] @ dtauc, G_tauc['B']['Tau'] @ dtau, np.zeros(T)] # constant debt
-# dB = [G_tauc['B']['tauc'] @ dtauc, G_tauc['B']['Tau'] @ dtau, G_rstar['B']['rstar'] @ drstar] # variable debt
+# dB = [G_tauc['B']['tauc'] @ dtauc, G_tauc['B']['Tau'] @ dtau, np.zeros(T)] # constant debt
+dB = [G_tauc['B']['tauc'] @ dtauc, G_tauc['B']['Tau'] @ dtau, G_rstar['B']['rstar'] @ drstar] # variable debt
 dW = [G_tauc['w']['tauc'] @ dtauc, G_tauc['w']['Tau'] @ dtau, G_rstar['w']['rstar'] @ drstar]
 dP = [G_tauc['pi']['tauc'] @ dtauc, G_tauc['pi']['Tau'] @ dtau, G_rstar['pi']['rstar'] @ drstar]
 dr = [G_tauc['r']['tauc'] @ dtauc, G_tauc['r']['Tau'] @ dtau, G_rstar['r']['rstar'] @ drstar]
@@ -334,14 +331,142 @@ dif = [['\nDYNAMICS', 'CUM SUM \u03C4c','CUM SUM \u03C4c-i*','IMPACT \u03C4c/i*'
       ['Output', 100 * np.sum(cumY), 100 * np.sum(dcumY), dY[0][0] / dY[2][0]],
       ['Consumption', 100 * np.sum(cumC), 100 * np.sum(dcumC), dC[0][0] / dC[2][0]],
       ['Inflation', 100 * np.sum(cumP), 100 * np.sum(dcumP), dP[0][0] / dP[2][0]],
-      ['Wage', 100 * np.sum(cumW), 100 * np.sum(dcumW), dW[0][0] / dW[2][0]]]
-      #['Debt', 100 * np.sum(cumB), 100 * np.sum(dcumB), dB[0][0] / dB[2][0]]]
+      ['Wage', 100 * np.sum(cumW), 100 * np.sum(dcumW), dW[0][0] / dW[2][0]],
+      ['Debt', 100 * np.sum(cumB), 100 * np.sum(dcumB), dB[0][0] / dB[2][0]]]
 for i in range(len(dif)):
     if i == 0:
         print('{:<27s} {:^15s} {:^15s} {:^15s}'.format(dif[i][0], dif[i][1], dif[i][2], dif[i][3]))
     else:
         print('{:<21s} {:>14.3f} {:s} {:>14.3f} {:s} {:>14.3f}'.format(dif[i][0], dif[i][1], "%", dif[i][2], "%", dif[i][3]))
 
+
+# =============================================================================
+# Household iteration policy rule
+# =============================================================================
+
+def household(V_prime_p, a_init, beta, gamma, nu, phi, Div, r, w, Tau, tauc, taun):
+    C = (beta * (1 + tauc) * V_prime_p) ** (-1/gamma)
+    # C = ((1 - taun) * w / ((1 + tauc) * phi * N ** nu)) ** (1/gamma) # foc
+    N = ((1 - taun) * w / ((1 + tauc) * phi * C ** gamma)) ** (1/nu) # foc labor 
+    A = (1 + r) * a_init + (1 - taun) * w * N + Tau + Div - (1 + tauc) * C 
+    V_prime = (1 + r) / (1 + tauc) * C ** (-gamma)
+    return V_prime, A, C, N 
+
+
+def iterate_h(foo, V_prime_start, a_init, beta, gamma, nu, phi, taun, Div, r, w,  
+              Tau, tauc, maxit=1000, tol=1E-8):
+    V_prime_p = V_prime_start
+    V_prime_old = V_prime_start    
+    ite = 0
+    err = 1    
+    while ite < maxit and err > tol:
+        # foo is a placeholder, will be household function defined above
+        V_prime_temp, A, C, N = foo(V_prime_p, a_init, beta, gamma, nu, phi, Div, r, w, Tau, tauc, taun)
+        V_prime_p = V_prime_temp
+        ite += 1
+        err = np.max(np.abs(V_prime_old - V_prime_temp))
+        # print(ite)
+        V_prime_old = V_prime_temp 
+    return V_prime_temp, A, C, N
+
+
+# =============================================================================
+# Decompose effects
+# =============================================================================
+
+# Parameters and steady-state variables
+beta = ss_tauc['beta']
+phi = ss_tauc['phi']
+
+A_ss = ss_tauc['B']
+C_ss = ss_tauc['C']
+Div_ss = ss_tauc['Div']
+r_ss = ss_tauc['r']
+Tau_ss = ss_tauc['Tau']
+w_ss = ss_tauc['w']
+V_prime_ss = (1 + rstar) / (1 + tauc) * C_ss ** (-gamma)
+
+# Policy 1: consumption tax
+print("\nPOLICY 1: CONSUMPTION TAX")
+
+# Aggregate transition dynamics
+path_div_tauc = Div_ss + G_tauc['Div']['tauc'] @ dtauc
+path_n_tauc = N_ss + G_tauc['N']['tauc'] @ dtauc
+path_r_tauc = r_ss + G_tauc['r']['tauc'] @ dtauc
+path_tauc_tauc = tauc + dtauc
+path_w_tauc = w_ss + G_tauc['w']['tauc'] @ dtauc
+
+# Compute consumption path
+print("Computing consumption path...", end=" ")
+a_init = A_ss
+C_all_tauc, N_all_tauc = np.zeros((T)), np.zeros((T))
+for t in range(T-1, -1, -1):
+# for t in range(T-1):    
+    # print(t)
+    V_prime_p_tau, _, C, N = iterate_h(household, V_prime_ss, a_init, beta, gamma, nu, phi, taun, 
+                                       path_div_tauc[t], path_r_tauc[t], path_w_tauc[t], Tau_ss, path_tauc_tauc[t])
+    C_all_tauc[t] = C
+    N_all_tauc[t] = N
+print("Done")
+
+# Direct effect of policy
+print("Computing direct effect...", end=" ")
+a_init = A_ss
+V_prime_p_tau = V_prime_ss
+C_direct_tauc, N_direct_tauc = np.zeros((T)), np.zeros((T))
+for t in range(T-1, -1, -1):
+    V_prime_p_tau, _, C, N = iterate_h(household, V_prime_p_tau, a_init, beta, gamma, nu, phi, taun, 
+                                        Div_ss, r_ss, w_ss, Tau_ss, tauc)
+    C_direct_tauc[t] = C
+    N_direct_tauc[t] = N
+print("Done")
+
+plt.plot(C_all_tauc[:30], label="Iteration")
+plt.plot(dC[0][:30] * 100, label="Aggregate")
+plt.legend()
+plt.show()
+
+
+# =============================================================================
+# Individual vs aggregate impact responses
+# =============================================================================
+
+# c_agg_tau_tot = dC[0][0] / ss_tau['C'] * 100
+# c_tau_tot = np.sum(c_all_tau[:, :, 0] * D_ss_tau) * 100
+# c_dev_tau_tot = np.sum((c_all_tau[:, :, 0] - c_ss_tau) * D_ss_tau) * 100 # absolute deviation from ss
+# c_dev_tau_tot = np.sum((c_all_tau[:, :, 0] - c_ss_tau) / c_ss_tau * D_ss_tau) * 100 # percent deviation from ss
+# print("Aggregate impact consumption response              = ", round(c_agg_tau_tot, 3), "%")
+# print("Sum of all individual impact consumption responses = ", round(c_dev_tau_tot, 3), "%")
+
+# Plot
+fig, ax = plt.subplots(2, 3)
+# fig.suptitle('Individual vs Aaggregate responses', size=16)
+iT = 30
+ax[0, 0].set_title(r'Hours')
+ax[0, 0].plot(N_ss + dN[0][:iT], label="Aggregate")
+ax[0, 0].plot(path_n_tauc[:iT],'-.', label="Individual")
+ax[0, 0].legend(loc='upper right', frameon=False)
+
+ax[0, 1].set_title(r'Real interest rate')
+# ax[0, 1].plot(r_ss * (1 + dr[0][:iT]), label="Aggregate")
+ax[0, 1].plot(r_ss + dr[0][:iT], label="Aggregate")
+ax[0, 1].plot(path_r_tauc[:iT],'-.', label="Individual")
+ax[0, 1].legend(loc='upper right', frameon=False)
+
+ax[0, 2].set_title(r'Wage')
+ax[0, 2].plot(w_ss + dW[0][:iT], label="Aggregate")
+ax[0, 2].plot(path_w_tauc[:iT],'-.', label="Individual")
+ax[0, 2].legend(loc='upper right', frameon=False)
+
+ax[1, 0].set_title(r'Transfers')
+ax[1, 0].plot(Tau_ss + dT[0][:iT], label="Aggregate")
+ax[1, 0].plot(Tau_ss,'-.', label="Individual")
+ax[1, 0].legend(loc='upper right', frameon=False)
+
+ax[1, 1].set_title(r'Dividends')
+ax[1, 1].plot(Div_ss + dd[0][:iT], label="Aggregate")
+ax[1, 1].plot(path_div_tauc[:iT],'-.', label="Individual")
+ax[1, 1].legend
 
 
 
