@@ -344,7 +344,7 @@ for i in range(len(dif)):
 # Household iteration policy rule
 # =============================================================================
 
-def household(V_prime_p, a_init, beta, gamma, nu, phi, Div, r, w, Tau, tauc, taun):
+def household_d(V_prime_p, a_init, beta, gamma, nu, phi, Div, r, w, Tau, tauc, taun):
     C = (beta * (1 + tauc) * V_prime_p) ** (-1/gamma)
     # C = ((1 - taun) * w / ((1 + tauc) * phi * N ** nu)) ** (1/gamma) # foc
     N = ((1 - taun) * w / ((1 + tauc) * phi * C ** gamma)) ** (1/nu) # foc labor 
@@ -360,7 +360,7 @@ def iterate_h(foo, V_prime_start, a_init, beta, gamma, nu, phi, taun, Div, r, w,
     ite = 0
     err = 1    
     while ite < maxit and err > tol:
-        # foo is a placeholder, will be household function defined above
+        # foo is a placeholder, will be household_d function defined above
         V_prime_temp, A, C, N = foo(V_prime_p, a_init, beta, gamma, nu, phi, Div, r, w, Tau, tauc, taun)
         V_prime_p = V_prime_temp
         ite += 1
@@ -403,19 +403,19 @@ C_all_tauc, N_all_tauc = np.zeros((T)), np.zeros((T))
 for t in range(T-1, -1, -1):
 # for t in range(T-1):    
     # print(t)
-    V_prime_p_tau, _, C, N = iterate_h(household, V_prime_ss, a_init, beta, gamma, nu, phi, taun, 
+    V_prime_p_tau, _, C, N = iterate_h(household_d, V_prime_ss, a_init, beta, gamma, nu, phi, taun, 
                                        path_div_tauc[t], path_r_tauc[t], path_w_tauc[t], Tau_ss, path_tauc_tauc[t])
     C_all_tauc[t] = C
     N_all_tauc[t] = N
 print("Done")
 
-# Direct effect of policy
+# Direct effect of policy FOR NOW ALL SET TO CONSTANT
 print("Computing direct effect...", end=" ")
 a_init = A_ss
 V_prime_p_tau = V_prime_ss
 C_direct_tauc, N_direct_tauc = np.zeros((T)), np.zeros((T))
 for t in range(T-1, -1, -1):
-    V_prime_p_tau, _, C, N = iterate_h(household, V_prime_p_tau, a_init, beta, gamma, nu, phi, taun, 
+    V_prime_p_tau, _, C, N = iterate_h(household_d, V_prime_p_tau, a_init, beta, gamma, nu, phi, taun, 
                                         Div_ss, r_ss, w_ss, Tau_ss, tauc)
     C_direct_tauc[t] = C
     N_direct_tauc[t] = N
