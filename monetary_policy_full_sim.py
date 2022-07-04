@@ -262,7 +262,7 @@ for t in range(T-1, -1, -1):
 
 econ_ss = dist.start_from_steady(1_000_000, D_ss_rstar, e_grid_rstar, a_grid_rstar)
 period_0_rstar = dist.update_economy(econ_ss, a_grid_rstar, e_grid_rstar, a_all_rstar[:,:,0], Pi_rstar)
-dist_0_rstar = dist.compute_distribution(period_0_rstar, a_grid_rstar, nE)
+dist_0_rstar = dist.compute_distribution(period_0_rstar, a_grid_rstar, e_grid_rstar)
 
 print(np.sum(c_all_rstar[:,:,0]*dist_0_rstar))
 print(G_rstar['C']['rstar'][0][0] * drstar[0] + ss0_rstar['C'])

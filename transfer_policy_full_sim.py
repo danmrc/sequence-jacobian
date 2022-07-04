@@ -249,7 +249,7 @@ path_w_tau = w_ss_tau + G_tau['w']['Tau'] @ dtau
 # path_w_tau = w_ss_tau * (1 + G_tau['w']['Tau'] @ dtau)
 
 # Compute all individual consumption paths
-print("Computing individual paths...", end=" ")
+
 V_prime_p_tau = (1 + r_ss_tau) / (1 + tauc) * c_ss_tau ** (-gamma)
 c_all_tau = np.zeros((nE, nA, T))
 a_all_tau = np.zeros((nE, nA, T))
@@ -258,10 +258,10 @@ for t in range(T-1, -1, -1):
                                         path_div_tau[t], path_n_tau[t], path_r_tau[t], path_tau_tau[t], tauc, taun, path_w_tau[t])
     c_all_tau[:, :, t] = c  
     a_all_tau[:,:,t] = a
-print("Done")
+
 
 # Direct effect of policy
-print("Computing direct effect...", end=" ")
+
 V_prime_p_tau = (1 + r_ss_tau) / (1 + tauc) * c_ss_tau ** (-gamma)
 c_direct_tau = np.zeros((nE, nA, T))
 for t in range(T-1, -1, -1):
@@ -270,12 +270,10 @@ for t in range(T-1, -1, -1):
     # V_prime_p_tau, _, c, _ = iterate_h(household_d, V_prime_p_tau, a_grid_tau, e_grid_tau, Pi_tau, pi_e_tau, beta, gamma,
                                         # Div_ss_tau, N_ss_tau, r_ss_tau, Tau_ss_tau, tauc, taun, w_ss_tau)
     c_direct_tau[:, :, t] = c
-print("Done")
 
-
-econ_ss = dist.start_from_steady(1_000_000, D_ss_tau, e_grid_tau, a_grid_tau)
-period_0_tau = dist.update_economy(econ_ss, a_grid_tau, e_grid_tau, a_all_tau[:,:,0], Pi_tau)
-dist_0_tau = dist.compute_distribution(period_0_tau, a_grid_tau, nE)
+econ_ss_tau = dist.start_from_steady(1_000_000, D_ss_tau, e_grid_tau, a_grid_tau)
+period_0_tau = dist.update_economy(econ_ss_tau, a_grid_tau, e_grid_tau, a_all_tau[:,:,0], Pi_tau)
+dist_0_tau = dist.compute_distribution(period_0_tau, a_grid_tau, e_grid_tau)
 
 print(np.sum(c_all_tau[:,:,0]*dist_0_tau))
 print(G_tau['C']['Tau'][0][0] * dtau[0] + ss0_tau['C'])

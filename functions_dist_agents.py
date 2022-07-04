@@ -18,7 +18,7 @@ def return_shock(e,e_grid,Pi):
     nE = e_grid.size
     index = np.nonzero(e == e_grid)
     probs = Pi[index[0][0],:]
-    return int(random.choices(range(nE),weights  = probs, k = 1)[0])
+    return e_grid[random.choices(range(nE),weights = probs, k = 1)[0]]
 
 def start_from_steady(nP,D_ss,e_grid,a_grid):
     nE,nA = D_ss.shape
@@ -41,17 +41,19 @@ def update_economy(state_now,a_grid,e_grid,a_policy,Pi):
         state[1,i] = return_asset(state_now[1,i], state_now[0,i], a_grid, e_grid, a_policy)
     return state
 
-def compute_distribution(state,a_grid,nE):
+def compute_distribution(state,a_grid,e_grid):
     
     a_on_grid = np.digitize(state[1,:],a_grid)
+    e_on_grid = np.digitize(state[0,:], e_grid)
     nA = a_grid.size
+    nE = e_grid.size
     _,nP = state.shape
     
     distribution = np.zeros((nE,nA))
     
     for i in range(nP):
         column = a_on_grid[i]-1
-        line = int(state[0,i])
+        line = e_on_grid[i] -1
         distribution[line,column] +=1
 
     distribution = distribution/nP
